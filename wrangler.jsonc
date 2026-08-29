@@ -1,7 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "10x-astro-starter",
+  "name": "europe-1940",
   "main": "@astrojs/cloudflare/entrypoints/server",
+  // Do NOT bump compatibility_date casually: dates >= 2025-09-15 + nodejs_compat
+  // have triggered an Astro middleware SSR bug ([object Object], astro#14511).
+  // Current date works with astro@6.4.8 — verify SSR renders after any upgrade.
   "compatibility_date": "2026-05-08",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
