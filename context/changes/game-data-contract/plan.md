@@ -329,23 +329,23 @@ When the final balance CSV arrives (resolved OQ-2), its values replace the draft
 
 #### Automated
 
-- [x] 2.1 `npm test` passes
-- [x] 2.2 `npm run lint` passes
-- [x] 2.3 `npm run build` passes
+- [x] 2.1 `npm test` passes — c7788e2
+- [x] 2.2 `npm run lint` passes — c7788e2
+- [x] 2.3 `npm run build` passes — c7788e2
 
 #### Manual
 
-- [x] 2.4 Human game-design review of map graph and draft stats
+- [x] 2.4 Human game-design review of map graph and draft stats — c7788e2
 
 ### Phase 3: Validation, accessor, and contract registry
 
 #### Automated
 
-- [ ] 3.1 `npm test` passes (invariants + mutation cases)
-- [ ] 3.2 `npm run lint` passes
-- [ ] 3.3 `npm run build` passes
-- [ ] 3.5 CI workflow includes the `npm test` step
+- [x] 3.1 `npm test` passes (invariants + mutation cases)
+- [x] 3.2 `npm run lint` passes
+- [x] 3.3 `npm run build` passes
+- [x] 3.5 CI workflow includes the `npm test` step
 
 #### Manual
 
-- [ ] 3.4 Review of docs/reference/contract-surfaces.md
+- [x] 3.4 Review of docs/reference/contract-surfaces.md
