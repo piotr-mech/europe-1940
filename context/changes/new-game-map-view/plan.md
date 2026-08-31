@@ -216,25 +216,25 @@ Starting armies are drafts in the factory; the balance CSV swap (F-01 contract) 
 
 #### Automated
 
-- [x] 1.1 `npm test` passes (game-state tests added)
-- [x] 1.2 `npm run lint` passes
-- [x] 1.3 `npm run build` passes
+- [x] 1.1 `npm test` passes (game-state tests added) — a829e2b
+- [x] 1.2 `npm run lint` passes — a829e2b
+- [x] 1.3 `npm run build` passes — a829e2b
 
 #### Manual
 
-- [x] 1.4 Review of draft starting-army values
+- [x] 1.4 Review of draft starting-army values — a829e2b
 
 ### Phase 2: Board map view (demo state)
 
 #### Automated
 
-- [ ] 2.1 `npm test` passes
-- [ ] 2.2 `npm run lint` passes
-- [ ] 2.3 `npm run build` passes
+- [x] 2.1 `npm test` passes
+- [x] 2.2 `npm run lint` passes
+- [x] 2.3 `npm run build` passes
 
 #### Manual
 
-- [ ] 2.4 `/game` demo board — first readability judgment
+- [x] 2.4 `/game` demo board — first readability judgment
 
 ### Phase 3: New game screen and island wiring
 
