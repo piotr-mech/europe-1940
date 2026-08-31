@@ -317,25 +317,25 @@ When the final balance CSV arrives (resolved OQ-2), its values replace the draft
 
 #### Automated
 
-- [x] 1.1 `npm test` passes (smoke test green)
-- [x] 1.2 `npm run lint` passes
-- [x] 1.3 `npm run build` passes
+- [x] 1.1 `npm test` passes (smoke test green) — cc26098
+- [x] 1.2 `npm run lint` passes — cc26098
+- [x] 1.3 `npm run build` passes — cc26098
 
 #### Manual
 
-- [x] 1.4 Type shapes reviewed against the plan contract
+- [x] 1.4 Type shapes reviewed against the plan contract — cc26098
 
 ### Phase 2: Prototype map graph + unit/city statistics
 
 #### Automated
 
-- [ ] 2.1 `npm test` passes
-- [ ] 2.2 `npm run lint` passes
-- [ ] 2.3 `npm run build` passes
+- [x] 2.1 `npm test` passes
+- [x] 2.2 `npm run lint` passes
+- [x] 2.3 `npm run build` passes
 
 #### Manual
 
-- [ ] 2.4 Human game-design review of map graph and draft stats
+- [x] 2.4 Human game-design review of map graph and draft stats
 
 ### Phase 3: Validation, accessor, and contract registry
 
