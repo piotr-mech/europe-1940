@@ -91,3 +91,27 @@ export interface GameData {
   unitTypes: readonly UnitType[];
   fields: readonly MapField[];
 }
+
+// --- Runtime game state (S-01; persisted client-side from S-08) ---
+
+/** A concrete unit in an army; stats come from its UnitType. */
+export interface UnitInstance {
+  id: string;
+  typeId: UnitTypeId;
+}
+
+export interface Army {
+  id: string;
+  owner: CountryId;
+  fieldId: string;
+  units: UnitInstance[];
+}
+
+export interface GameState {
+  turn: number;
+  playerCountryId: CountryId;
+  aiCountryId: CountryId;
+  /** fieldId -> owning country. */
+  fieldOwners: Record<string, CountryId>;
+  armies: Army[];
+}
