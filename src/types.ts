@@ -1,0 +1,93 @@
+/**
+ * Game domain types (change: game-data-contract, F-01).
+ *
+ * One canonical dataset shaped by these types lives in `src/data/`
+ * and is consumed through `getGameData()` from `src/lib/game-data.ts`.
+ */
+
+/** Playable countries on the prototype map (FR-001). */
+export type CountryId = "germany" | "soviet";
+
+/** Terrain kinds a non-city field can have (spec §4; port cut per PRD Non-Goals). */
+export type TerrainType = "plains" | "forest" | "mountains" | "river";
+
+/** Field kinds: cities plus the four terrain kinds. */
+export type FieldType = "city" | TerrainType;
+
+/** MVP resources (PRD FR-002: money, steel, recruits — oil/food cut). */
+export type ResourceId = "money" | "steel" | "recruits";
+
+export type ResourceBag = Record<ResourceId, number>;
+
+/** Unit kinds available in the prototype (spec §31). */
+export type UnitTypeId = "infantry" | "tank" | "artillery" | "antiTank";
+
+/** National bonus (spec §5); effects are implemented by id in later slices. */
+export interface NationalBonus {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface Country {
+  id: CountryId;
+  /** Polish display name. */
+  name: string;
+  /** Hex color used for ownership on the map. */
+  color: string;
+  nationalBonus: NationalBonus;
+}
+
+/** Static city statistics; owned by a `MapField` with `type: "city"`. */
+export interface CityData {
+  /** Parallel production slots (spec §17: 1–3). */
+  productionSlots: number;
+  defenseBonus: number;
+  /** Per-turn income for the owning country. */
+  income: ResourceBag;
+}
+
+export interface MapField {
+  /** Kebab-case English id, e.g. "warsaw". */
+  id: string;
+  /** Polish display name, e.g. "Warszawa". */
+  name: string;
+  type: FieldType;
+  /** Ids of adjacent fields; must be symmetric across the dataset. */
+  connections: string[];
+  initialOwner: CountryId;
+  /** SVG coordinates on the 1800x1200 canvas from game_data/*.csv. */
+  x: number;
+  y: number;
+  /** Present iff `type === "city"`. */
+  city: CityData | null;
+}
+
+export interface UnitType {
+  id: UnitTypeId;
+  /** Polish display name. */
+  name: string;
+  attack: number;
+  defense: number;
+  movement: number;
+  /** Extra attack vs tanks; anti-tank guns only. */
+  bonusVsTank: number | null;
+  cost: ResourceBag;
+  /** Build time in turns. */
+  buildTime: number;
+}
+
+/** Terrain effects consumed by movement (S-02) and combat (S-04). */
+export interface TerrainStats {
+  movementCost: number;
+  defenderBonus: number | null;
+  attackerPenalty: number | null;
+}
+
+/** The aggregate served by `getGameData()` (src/lib/game-data.ts). */
+export interface GameData {
+  countries: readonly Country[];
+  terrain: Record<TerrainType, TerrainStats>;
+  unitTypes: readonly UnitType[];
+  fields: readonly MapField[];
+}
