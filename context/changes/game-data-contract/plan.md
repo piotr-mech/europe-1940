@@ -341,11 +341,11 @@ When the final balance CSV arrives (resolved OQ-2), its values replace the draft
 
 #### Automated
 
-- [x] 3.1 `npm test` passes (invariants + mutation cases)
-- [x] 3.2 `npm run lint` passes
-- [x] 3.3 `npm run build` passes
-- [x] 3.5 CI workflow includes the `npm test` step
+- [x] 3.1 `npm test` passes (invariants + mutation cases) — 0ea907a
+- [x] 3.2 `npm run lint` passes — 0ea907a
+- [x] 3.3 `npm run build` passes — 0ea907a
+- [x] 3.5 CI workflow includes the `npm test` step — 0ea907a
 
 #### Manual
 
-- [x] 3.4 Review of docs/reference/contract-surfaces.md
+- [x] 3.4 Review of docs/reference/contract-surfaces.md — 0ea907a
