@@ -41,7 +41,7 @@ A simple, turn-based, board-game-style strategy game set in Europe 1940 — buil
 
 | ID   | Change ID            | Outcome (user can …)                                                       | Prerequisites | PRD refs                       | Status   |
 | ---- | -------------------- | -------------------------------------------------------------------------- | ------------- | ------------------------------ | -------- |
-| F-01 | game-data-contract   | (foundation) game reads the prototype map and balance data from data files | —             | FR-001, OQ-2 (resolved)        | in-progress |
+| F-01 | game-data-contract   | (foundation) game reads the prototype map and balance data from data files | —             | FR-001, OQ-2 (resolved)        | done      |
 | S-01 | new-game-map-view    | start a new game (picking own and AI country) and see the board-game map   | F-01          | FR-001, US-01                  | proposed |
 | S-02 | army-movement        | form armies, move them across the map, inspect cities and armies           | S-01          | FR-004, FR-005, FR-006, US-01  | proposed |
 | S-03 | resources-production | collect city income each turn and order new units in cities                | S-01          | FR-002, FR-003, US-01          | proposed |
@@ -86,7 +86,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:**
   - When does the final balance CSV arrive, and in what column shape? — Owner: user. Block: no (draft values from the spec cover the whole chain; CSV swaps in later).
 - **Risk:** Sequenced first because no slice can render or simulate anything without the dataset; kept as a minimal loading contract — slices above still exercise the data through real gameplay.
-- **Status:** in-progress
+- **Status:** done
 
 ## Slices
 
@@ -219,4 +219,4 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Done
 
-(Empty — `/10x-archive` appends entries here when a matching change is archived.)
+- **F-01: (foundation) game reads the prototype map and balance data from data files** — Archived 2026-08-31 → `context/archive/2026-08-31-game-data-contract/`. Lesson: —.

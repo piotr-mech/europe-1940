@@ -1,10 +1,10 @@
 ---
 change_id: game-data-contract
 title: Game data contract — prototype map and balance data from data files
-status: implemented
+status: archived
 created: 2026-08-31
 updated: 2026-08-31
-archived_at: null
+archived_at: 2026-08-31T19:40:45Z
 ---
 
 ## Notes
