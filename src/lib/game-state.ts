@@ -1,7 +1,7 @@
 import { MAP_FIELDS } from "@/data/map";
 import { UNIT_TYPES } from "@/data/units";
 import { applyMove, armySpeed } from "@/lib/movement";
-import type { Army, CountryId, GameState, UnitInstance, UnitTypeId } from "@/types";
+import type { Army, CountryId, GameState, ResourceBag, UnitInstance, UnitTypeId } from "@/types";
 
 /**
  * Draft starting armies (S-01 placeholders, re-tunable in S-02/S-03):
@@ -42,6 +42,8 @@ const INITIAL_ARMIES: readonly ArmyDraft[] = [
   },
 ];
 
+const ZERO_RESOURCES: ResourceBag = { money: 0, steel: 0, recruits: 0 };
+
 /** Builds a fresh campaign: owners from the dataset, turn 1, draft armies. */
 export function createInitialGameState(playerCountryId: CountryId, aiCountryId: CountryId): GameState {
   if (playerCountryId === aiCountryId) {
@@ -62,7 +64,21 @@ export function createInitialGameState(playerCountryId: CountryId, aiCountryId: 
     return { ...army, movementPoints: armySpeed(army) };
   });
 
-  return { turn: 1, playerCountryId, aiCountryId, fieldOwners, armies };
+  // Empty treasuries for now — Phase 2 (S-03) seeds turn-1 income here.
+  const resources: Record<CountryId, ResourceBag> = {
+    germany: { ...ZERO_RESOURCES },
+    soviet: { ...ZERO_RESOURCES },
+  };
+
+  return {
+    turn: 1,
+    playerCountryId,
+    aiCountryId,
+    fieldOwners,
+    armies,
+    resources,
+    productionQueues: {},
+  };
 }
 
 /** The army's most common unit type; ties resolved by UNIT_TYPES order. */

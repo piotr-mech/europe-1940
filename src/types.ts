@@ -109,6 +109,12 @@ export interface Army {
   movementPoints: number;
 }
 
+/** One queued build in a city; placed and paid at order time (S-03, FR-003). */
+export interface ProductionOrder {
+  typeId: UnitTypeId;
+  remainingTurns: number;
+}
+
 export interface GameState {
   turn: number;
   playerCountryId: CountryId;
@@ -116,4 +122,8 @@ export interface GameState {
   /** fieldId -> owning country. */
   fieldOwners: Record<string, CountryId>;
   armies: Army[];
+  /** Treasury per country (S-03, FR-002); seeded with turn-1 income at game start. */
+  resources: Record<CountryId, ResourceBag>;
+  /** fieldId -> queued builds (S-03, FR-003); absent key = empty queue. */
+  productionQueues: Record<string, ProductionOrder[]>;
 }
