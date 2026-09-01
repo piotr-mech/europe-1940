@@ -26,3 +26,8 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# raw game assets — processed versions ship from src/assets/ (unit webp)
+# and src/assets/europe-regions.svg
+game_data/obrazki jednostek/
+game_data/europa_regiony_preview.png

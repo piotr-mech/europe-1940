@@ -1,0 +1,93 @@
+﻿region_id;country_iso3;country;region_index;region_count_country;region_name;main_city;label_svg_x;label_svg_y;city_svg_x;city_svg_y
+alb-r1;ALB;Albania;1;1;Albania;Tirana;911.73;996.80;908.08;995.17
+and-r1;AND;Andora;1;1;Andora;Andora;526.66;963.70;526.66;966.01
+arm-r1;ARM;Armenia;1;1;Armenia;Erywań;1416.05;868.26;1413.99;873.43
+aut-r1;AUT;Austria;1;1;Austria;Wiedeń;790.35;828.24;820.39;812.01
+aze-r1;AZE;Azerbejdżan;1;1;Azerbejdżan;Baku;1462.47;838.64;1510.33;812.86
+blr-r1;BLR;Białoruś;1;3;Region Mińsk;Mińsk;984.85;627.41;988.00;623.17
+blr-r2;BLR;Białoruś;2;3;Region Brześć;Brześć;953.14;664.39;935.39;686.55
+blr-r3;BLR;Białoruś;3;3;Region Homel;Homel;1041.27;644.82;1053.84;647.88
+bel-r1;BEL;Belgia;1;1;Belgia;Bruksela;608.89;747.26;601.96;739.58
+bih-r1;BIH;Bośnia i Hercegowina;1;1;Bośnia i Hercegowina;Sarajewo;864.33;930.93;871.35;928.81
+bgr-r1;BGR;Bułgaria;1;2;Region Sofia;Sofia;992.32;947.96;974.75;946.29
+bgr-r2;BGR;Bułgaria;2;2;Region Warna;Warna;1045.32;938.12;1063.95;912.67
+hrv-r1;HRV;Chorwacja;1;1;Chorwacja;Zagrzeb;813.07;914.97;818.31;879.14
+cyp-r1;CYP;Cypr;1;1;Cypr;Nikozja;1226.76;1104.96;1232.40;1097.15
+cze-r1;CZE;Czechy;1;1;Czechy;Praga;803.01;769.42;781.30;762.64
+dnk-r1;DNK;Dania;1;1;Dania;Kopenhaga;693.26;590.55;742.20;607.98
+est-r1;EST;Estonia;1;1;Estonia;Tallinn;925.05;500.55;910.40;481.97
+fin-r1;FIN;Finlandia;1;3;Region Helsinki;Helsinki;943.42;421.23;908.46;461.41
+fin-r2;FIN;Finlandia;2;3;Region Tampere;Tampere;893.13;416.07;884.82;428.37
+fin-r3;FIN;Finlandia;3;3;Region Oulu;Oulu;885.39;279.40;884.05;328.18
+fra-r1;FRA;Francja;1;4;Region Paryż;Paryż;550.12;791.09;561.09;791.75
+fra-r2;FRA;Francja;2;4;Region Lyon;Lyon;584.02;860.78;600.81;881.76
+fra-r3;FRA;Francja;3;4;Region Marsylia;Marsylia;593.08;944.50;607.19;951.00
+fra-r4;FRA;Francja;4;4;Region Bordeaux;Bordeaux;512.74;889.11;492.19;896.17
+geo-r1;GEO;Gruzja;1;1;Gruzja;Tbilisi;1376.38;834.86;1402.24;831.29
+deu-r1;DEU;Niemcy;1;4;Region Berlin;Berlin;751.02;698.91;759.61;695.46
+deu-r2;DEU;Niemcy;2;4;Region Hamburg;Hamburg;692.94;673.64;701.54;668.03
+deu-r3;DEU;Niemcy;3;4;Region Monachium;Monachium;728.48;803.44;731.20;818.86
+deu-r4;DEU;Niemcy;4;4;Region Frankfurt nad Menem;Frankfurt nad Menem;677.71;774.24;677.99;763.85
+grc-r1;GRC;Grecja;1;2;Region Ateny;Ateny;1038.59;1146.54;1004.58;1073.95
+grc-r2;GRC;Grecja;2;2;Region Saloniki;Saloniki;954.39;1010.73;976.15;1004.15
+hun-r1;HUN;Węgry;1;1;Węgry;Budapeszt;873.89;832.57;872.17;826.51
+isl-r1;ISL;Islandia;1;2;Region Reykjavík;Reykjavík;338.96;269.28;325.36;284.38
+isl-r2;ISL;Islandia;2;2;Region Akureyri;Akureyri;390.39;268.06;385.76;264.85
+irl-r1;IRL;Irlandia;1;1;Irlandia;Dublin;409.05;637.03;432.58;643.30
+ita-r1;ITA;Włochy;1;3;Region Rzym;Rzym;748.64;965.30;753.80;991.77
+ita-r2;ITA;Włochy;2;3;Region Mediolan;Mediolan;694.45;900.23;685.73;893.52
+ita-r3;ITA;Włochy;3;3;Region Neapol;Neapol;794.64;1116.42;792.30;1019.24
+xkx-r1;XKX;Kosowo;1;1;Kosowo;Prisztina;926.67;956.02;931.08;954.46
+lva-r1;LVA;Łotwa;1;1;Łotwa;Ryga;926.42;555.98;915.60;551.99
+lie-r1;LIE;Liechtenstein;1;1;Liechtenstein;Vaduz;692.52;845.18;692.52;846.86
+ltu-r1;LTU;Litwa;1;1;Litwa;Wilno;918.39;598.33;946.82;610.22
+lux-r1;LUX;Luksemburg;1;1;Luksemburg;Luksemburg;628.65;773.06;631.53;776.15
+mlt-r1;MLT;Malta;1;1;Malta;Valletta;802.80;1155.48;804.82;1155.77
+mda-r1;MDA;Mołdawia;1;1;Mołdawia;Kiszyniów;1060.51;810.99;1056.87;805.01
+mco-r1;MCO;Monako;1;1;Monako;Monako;649.48;939.40;649.48;940.73
+mne-r1;MNE;Czarnogóra;1;1;Czarnogóra;Podgorica;889.78;958.76;892.98;966.20
+nld-r1;NLD;Niderlandy;1;1;Niderlandy;Amsterdam;621.91;708.68;614.64;698.03
+mkd-r1;MKD;Macedonia Północna;1;1;Macedonia Północna;Skopje;947.14;981.70;939.11;971.95
+nor-r1;NOR;Norwegia;1;3;Region Oslo;Oslo;700.37;493.53;712.23;490.40
+nor-r2;NOR;Norwegia;2;3;Region Bergen;Bergen;656.32;469.11;636.80;474.96
+nor-r3;NOR;Norwegia;3;3;Region Trondheim;Trondheim;754.22;291.34;706.62;392.49
+pol-r1;POL;Polska;1;3;Region Warszawa;Warszawa;886.55;683.27;889.59;690.67
+pol-r2;POL;Polska;2;3;Region Kraków;Kraków;873.91;745.59;879.69;753.26
+pol-r3;POL;Polska;3;3;Region Gdańsk;Gdańsk;817.16;667.32;842.35;637.24
+prt-r1;PRT;Portugalia;1;1;Portugalia;Lizbona;309.93;1010.27;286.29;1028.28
+rou-r1;ROU;Rumunia;1;3;Region Bukareszt;Bukareszt;1024.47;876.30;1021.18;887.87
+rou-r2;ROU;Rumunia;2;3;Region Kluż-Napoka;Kluż-Napoka;958.87;849.14;961.29;833.26
+rou-r3;ROU;Rumunia;3;3;Region Jassy;Jassy;1022.01;819.69;1033.19;806.73
+rus-r1;RUS;Rosja;1;6;Region Moskwa;Moskwa;1106.21;481.02;1124.52;523.72
+rus-r2;RUS;Rosja;2;6;Region Sankt Petersburg;Sankt Petersburg;1026.34;343.99;983.04;449.13
+rus-r3;RUS;Rosja;3;6;Region Niżny Nowogród;Niżny Nowogród;1148.60;293.96;1206.91;467.28
+rus-r4;RUS;Rosja;4;6;Region Kazań;Kazań;1238.37;351.26;1282.16;441.16
+rus-r5;RUS;Rosja;5;6;Region Rostów nad Donem;Rostów nad Donem;1273.35;728.97;1249.02;732.05
+rus-r6;RUS;Rosja;6;6;Region Wołgograd;Wołgograd;1341.79;681.87;1312.46;655.75
+smr-r1;SMR;San Marino;1;1;San Marino;San Marino;751.26;933.72;751.26;935.14
+srb-r1;SRB;Serbia;1;1;Serbia;Belgrad;917.98;912.45;908.73;897.95
+svk-r1;SVK;Słowacja;1;1;Słowacja;Bratysława;865.62;793.69;834.17;812.42
+svn-r1;SVN;Słowenia;1;1;Słowenia;Lublana;793.44;872.07;789.17;874.44
+esp-r1;ESP;Hiszpania;1;4;Region Madryt;Madryt;405.96;986.01;410.20;1007.43
+esp-r2;ESP;Hiszpania;2;4;Region Barcelona;Barcelona;516.12;981.02;537.06;998.47
+esp-r3;ESP;Hiszpania;3;4;Region Walencja;Walencja;460.37;1038.80;477.12;1044.76
+esp-r4;ESP;Hiszpania;4;4;Region Sewilla;Sewilla;361.83;1067.65;346.60;1080.45
+swe-r1;SWE;Szwecja;1;4;Region Sztokholm;Sztokholm;787.51;494.55;816.85;500.21
+swe-r2;SWE;Szwecja;2;4;Region Göteborg;Göteborg;752.38;539.46;731.21;551.55
+swe-r3;SWE;Szwecja;3;4;Region Malmö;Malmö;767.76;585.76;749.16;609.69
+swe-r4;SWE;Szwecja;4;4;Region Umeå;Umeå;796.47;326.92;828.59;372.18
+che-r1;CHE;Szwajcaria;1;1;Szwajcaria;Berno;668.43;855.10;652.86;851.43
+tur-r1;TUR;Turcja;1;5;Region Stambuł;Stambuł;1123.37;965.23;1099.22;967.20
+tur-r2;TUR;Turcja;2;5;Region Ankara;Ankara;1297.51;951.95;1186.12;973.48
+tur-r3;TUR;Turcja;3;5;Region Izmir;Izmir;1092.39;1045.91;1076.22;1046.76
+tur-r4;TUR;Turcja;4;5;Region Bursa;Bursa;1112.87;1009.09;1106.09;988.81
+tur-r5;TUR;Turcja;5;5;Region Antalya;Antalya;1181.94;1054.89;1162.42;1068.52
+ukr-r1;UKR;Ukraina;1;4;Region Kijów;Kijów;1059.70;714.84;1061.88;703.61
+ukr-r2;UKR;Ukraina;2;4;Region Lwów;Lwów;975.62;749.51;953.13;747.39
+ukr-r3;UKR;Ukraina;3;4;Region Odessa;Odessa;1121.68;795.79;1095.39;809.73
+ukr-r4;UKR;Ukraina;4;4;Region Charków;Charków;1178.62;709.55;1162.03;683.61
+gbr-r1;GBR;Wielka Brytania;1;4;Region Londyn;Londyn;528.45;703.69;525.88;712.87
+gbr-r2;GBR;Wielka Brytania;2;4;Region Birmingham;Birmingham;482.16;700.96;500.03;681.23
+gbr-r3;GBR;Wielka Brytania;3;4;Region Manchester;Manchester;511.42;641.08;498.82;652.81
+gbr-r4;GBR;Wielka Brytania;4;4;Region Glasgow;Glasgow;486.36;562.51;479.33;581.31
+vat-r1;VAT;Watykan;1;1;Watykan;Watykan;752.90;992.86;752.90;991.79
