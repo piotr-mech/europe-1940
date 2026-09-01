@@ -76,6 +76,14 @@ describe("reachableFields", () => {
     expect(reachableFields(state, "G").has("pomerania-plains")).toBe(false);
   });
 
+  it("drops merge targets that would exceed the 8-unit cap (FR-004)", () => {
+    const state = stateWithArmies([
+      army("G1", "germany", "berlin", ["infantry", "infantry", "infantry", "infantry"]),
+      army("G2", "germany", "oder-plains", ["infantry", "infantry", "infantry", "infantry", "infantry"]),
+    ]);
+    expect(reachableFields(state, "G1").has("oder-plains")).toBe(false);
+  });
+
   it("passes through own armies' fields (merge targets)", () => {
     const state = stateWithArmies([
       army("G1", "germany", "berlin", ["infantry"]),
@@ -135,7 +143,8 @@ describe("applyMove", () => {
       army("G1", "germany", "berlin", ["infantry", "infantry", "infantry", "infantry"]),
       army("G2", "germany", "oder-plains", ["infantry", "infantry", "infantry", "infantry", "infantry"]),
     ]);
-    expect(() => applyMove(state, "G1", "oder-plains")).toThrow("8-unit limit");
+    // The over-cap target is filtered out of the reach set, so the move reads as unreachable.
+    expect(() => applyMove(state, "G1", "oder-plains")).toThrow("not reachable");
   });
 
   it("throws for unreachable or enemy-held targets", () => {

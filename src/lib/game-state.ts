@@ -97,8 +97,16 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
   switch (action.type) {
     case "startGame":
       return createInitialGameState(action.playerCountryId, action.aiCountryId);
-    case "moveArmy":
-      return state === null ? state : applyMove(state, action.armyId, action.targetFieldId);
+    case "moveArmy": {
+      if (state === null) return state;
+      try {
+        return applyMove(state, action.armyId, action.targetFieldId);
+      } catch {
+        // Illegal move (unreachable target, over-cap merge): leave the state
+        // untouched — the UI only offers reachable targets, this is a backstop.
+        return state;
+      }
+    }
     case "endTurn":
       return state === null
         ? state

@@ -75,6 +75,13 @@ export function reachableFields(state: GameState, armyId: string): Map<string, {
       }
     }
   }
+  // A merge target that would exceed the 8-unit cap (FR-004) is not a legal
+  // move — keep it out of the reach set so the UI never promises it.
+  for (const candidate of state.armies) {
+    if (candidate.owner === army.owner && candidate.units.length + army.units.length > 8) {
+      best.delete(candidate.fieldId);
+    }
+  }
   return best;
 }
 

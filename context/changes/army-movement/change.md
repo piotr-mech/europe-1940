@@ -1,7 +1,7 @@
 ---
 change_id: army-movement
 title: Armies and movement
-status: implemented
+status: impl_reviewed
 created: 2026-09-01
 updated: 2026-09-01
 archived_at: null

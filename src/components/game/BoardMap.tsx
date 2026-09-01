@@ -126,6 +126,11 @@ export function BoardMap({ state, selectedArmyId, reachable, onArmyClick, onFiel
     }
   };
 
+  // A cancelled gesture (browser took over) is never a click — just drop the drag.
+  const onPointerCancel = (): void => {
+    dragRef.current = null;
+  };
+
   // Hook-free derivations: the dataset is tiny — no memoization needed.
   const colorByCountry = new Map<string, string>(data.countries.map((country) => [country.id, country.color]));
   const fieldById = new Map(data.fields.map((field) => [field.id, field]));
@@ -194,7 +199,7 @@ export function BoardMap({ state, selectedArmyId, reachable, onArmyClick, onFiel
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerCancel={onPointerCancel}
       onDoubleClick={() => {
         setView(FULL_VIEW);
       }}

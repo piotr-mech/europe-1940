@@ -20,7 +20,7 @@ anything listed here is a breaking change — check consumers before touching it
 | `TERRAIN` (`src/data/terrain.ts`) | data | Terrain effects for plains/forest/mountains/river | Via `buildGameData()` only |
 | `armySpeed(army)` (`src/lib/movement.ts`) | function | Army pace = slowest unit's movement (FR-005); throws on empty army | `createInitialGameState`, `endTurn` reset, S-04 (battle), S-05 (supply penalty) |
 | `movementCostOf(field)` (`src/lib/movement.ts`) | function | Field entry cost; cities are flat 1 (no "city" key in `TERRAIN`) | `reachableFields`, `applyMove`, S-04 |
-| `reachableFields(state, armyId)` (`src/lib/movement.ts`) | function | Cheapest-path reachability within remaining movement; enemy-army fields impassable, own-army fields passable (merge targets) | GameScreen (highlight set), `planMove`, S-06 (AI) |
+| `reachableFields(state, armyId)` (`src/lib/movement.ts`) | function | Cheapest-path reachability within remaining movement; enemy-army fields impassable, own-army fields passable (merge targets within the 8-unit cap) | GameScreen (highlight set), `planMove`, S-06 (AI) |
 | `planMove(state, armyId, targetFieldId)` (`src/lib/movement.ts`) | function | Cheapest path + cost, or null when out of reach | `applyMove`, S-06 (AI) |
 | `applyMove(state, armyId, targetFieldId)` (`src/lib/movement.ts`) | function | Pure move application: cost, path walk, non-city ownership flips, ≤8-unit merge; throws on illegal moves | `gameReducer` (`moveArmy`), tests, S-06 (AI) |
 | `Army.movementPoints` (`src/types.ts`) | field | Movement points left this turn; reset to `armySpeed` by `endTurn` | Movement engine, GameScreen/BoardMap (S-02 UI), DetailPanel (S-02 UI) |
