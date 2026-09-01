@@ -1,10 +1,10 @@
 ---
 change_id: army-movement
 title: Armies and movement
-status: impl_reviewed
+status: archived
 created: 2026-09-01
 updated: 2026-09-01
-archived_at: null
+archived_at: 2026-09-01T18:03:32Z
 ---
 
 ## Notes

@@ -43,7 +43,7 @@ A simple, turn-based, board-game-style strategy game set in Europe 1940 — buil
 | ---- | -------------------- | -------------------------------------------------------------------------- | ------------- | ------------------------------ | -------- |
 | F-01 | game-data-contract   | (foundation) game reads the prototype map and balance data from data files | —             | FR-001, OQ-2 (resolved)        | done      |
 | S-01 | new-game-map-view    | start a new game (picking own and AI country) and see the board-game map   | F-01          | FR-001, US-01                  | done      |
-| S-02 | army-movement        | form armies, move them across the map, inspect cities and armies           | S-01          | FR-004, FR-005, FR-006, US-01  | in-progress |
+| S-02 | army-movement        | form armies, move them across the map, inspect cities and armies           | S-01          | FR-004, FR-005, FR-006, US-01  | done |
 | S-03 | resources-production | collect city income each turn and order new units in cities                | S-01          | FR-002, FR-003, US-01          | proposed |
 | S-04 | battle-city-capture  | attack an enemy field, win an automatic battle, take ownership of a city   | S-02, S-03    | FR-007, FR-008, FR-009, US-01  | proposed |
 | S-05 | supply-lines         | see supply status and suffer the penalty when the line is cut              | S-04          | FR-010, FR-011, Business Logic | proposed |
@@ -112,7 +112,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Movement rules feed the battle slice; keeping it free of combat keeps both halves plannable.
-- **Status:** in-progress
+- **Status:** done
 
 ### S-03: Resources and production
 
@@ -221,3 +221,4 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 - **F-01: (foundation) game reads the prototype map and balance data from data files** — Archived 2026-08-31 → `context/archive/2026-08-31-game-data-contract/`. Lesson: —.
 - **S-01: start a new game (picking own and AI country) and see the board-game map** — Archived 2026-09-01 → `context/archive/2026-08-31-new-game-map-view/`. Lesson: —.
+- **S-02: user can combine units into armies (max 8) moving as a single token, move armies between connected fields within movement points (slowest unit sets pace, terrain changes cost), and click cities/armies to inspect their details** — Archived 2026-09-01 → `context/archive/2026-09-01-army-movement/`. Lesson: —.
