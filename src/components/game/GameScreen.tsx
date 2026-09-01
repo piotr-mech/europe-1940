@@ -1,6 +1,7 @@
 import { useReducer, useState } from "react";
 
 import { BoardMap } from "@/components/game/BoardMap";
+import { DetailPanel, type SelectedSubject } from "@/components/game/DetailPanel";
 import { getGameData } from "@/lib/game-data";
 import { gameReducer } from "@/lib/game-state";
 import { reachableFields } from "@/lib/movement";
@@ -50,6 +51,7 @@ export function GameScreen() {
   const [playerCountryId, setPlayerCountryId] = useState<CountryId>("germany");
   const [aiCountryId, setAiCountryId] = useState<CountryId>("soviet");
   const [selectedArmyId, setSelectedArmyId] = useState<string | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<SelectedSubject | null>(null);
 
   // Picking a side in one group swaps the other, so the two can never be equal.
   const pickPlayerCountry = (id: CountryId): void => {
@@ -118,19 +120,38 @@ export function GameScreen() {
     // Only the player's own armies create a movement selection.
     if (army?.owner !== state.playerCountryId) {
       setSelectedArmyId(null);
+      setSelectedSubject({ kind: "army", armyId }); // enemy armies: inspection only
       return;
     }
     setSelectedArmyId((current) => (current === armyId ? null : armyId));
+    setSelectedSubject((current) =>
+      current?.kind === "army" && current.armyId === armyId ? null : { kind: "army", armyId },
+    );
   };
   const onFieldClick = (fieldId: string | null): void => {
-    if (fieldId !== null && selectedArmyId !== null && reachable.has(fieldId)) {
+    if (fieldId === null) {
+      setSelectedArmyId(null);
+      setSelectedSubject(null);
+      return;
+    }
+    if (selectedArmyId !== null && reachable.has(fieldId)) {
       dispatch({ type: "moveArmy", armyId: selectedArmyId, targetFieldId: fieldId });
+      setSelectedArmyId(null);
+      setSelectedSubject(null);
+      return;
+    }
+    const field = data.fields.find((candidate) => candidate.id === fieldId);
+    if (field === undefined) {
+      setSelectedArmyId(null);
+      setSelectedSubject(null);
+      return;
     }
     setSelectedArmyId(null);
+    setSelectedSubject({ kind: field.type === "city" ? "city" : "field", fieldId });
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
+    <main className="mx-auto max-w-7xl px-4 py-6">
       <header className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1">
         <h1 className="text-2xl font-bold">EUROPE 1940</h1>
         <p className="text-sm text-slate-600">
@@ -142,19 +163,25 @@ export function GameScreen() {
           onClick={() => {
             dispatch({ type: "endTurn" });
             setSelectedArmyId(null);
+            setSelectedSubject(null);
           }}
           className="ml-auto rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
         >
           Koniec tury
         </button>
       </header>
-      <BoardMap
-        state={state}
-        selectedArmyId={selectedArmyId}
-        reachable={reachable}
-        onArmyClick={onArmyClick}
-        onFieldClick={onFieldClick}
-      />
+      <div className="flex items-start gap-4">
+        <div className="min-w-0 flex-1">
+          <BoardMap
+            state={state}
+            selectedArmyId={selectedArmyId}
+            reachable={reachable}
+            onArmyClick={onArmyClick}
+            onFieldClick={onFieldClick}
+          />
+        </div>
+        <DetailPanel state={state} selected={selectedSubject} />
+      </div>
     </main>
   );
 }
