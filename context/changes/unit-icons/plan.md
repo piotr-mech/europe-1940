@@ -45,10 +45,10 @@ Map tokens render as an owner-colored rounded rect containing the dominant unit 
 
 #### Automated
 
-- [x] 1.1 `npm test` passes (41 tests, no regressions)
-- [x] 1.2 `npm run lint` passes
-- [x] 1.3 `npm run build` passes
+- [x] 1.1 `npm test` passes (41 tests, no regressions) — c4138f0
+- [x] 1.2 `npm run lint` passes — c4138f0
+- [x] 1.3 `npm run build` passes — c4138f0
 
 #### Manual
 
-- [x] 1.4 Map tokens and panel thumbnails verified on `/game` (readability, hit-test, interactions intact)
+- [x] 1.4 Map tokens and panel thumbnails verified on `/game` (readability, hit-test, interactions intact) — c4138f0
