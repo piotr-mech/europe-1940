@@ -1,10 +1,10 @@
 ---
 change_id: new-game-map-view
 title: New game screen and board-game map view
-status: implemented
+status: archived
 created: 2026-08-31
 updated: 2026-09-01
-archived_at: null
+archived_at: 2026-09-01T16:27:24Z
 ---
 
 ## Notes
