@@ -1,7 +1,7 @@
 ---
 change_id: unit-icons
 title: Unit images on map tokens and in the detail panel
-status: implemented
+status: impl_reviewed
 created: 2026-09-01
 updated: 2026-09-01
 archived_at: null
