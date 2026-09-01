@@ -240,11 +240,11 @@ Starting armies are drafts in the factory; the balance CSV swap (F-01 contract) 
 
 #### Automated
 
-- [x] 3.1 `npm test` passes
-- [x] 3.2 `npm run lint` passes
-- [x] 3.3 `npm run build` passes
+- [x] 3.1 `npm test` passes — ac436ab
+- [x] 3.2 `npm run lint` passes — ac436ab
+- [x] 3.3 `npm run build` passes — ac436ab
 
 #### Manual
 
-- [x] 3.4 Full setup flow verified (countries, constraint, refresh)
-- [x] 3.5 Final readability NFR gate
+- [x] 3.4 Full setup flow verified (countries, constraint, refresh) — ac436ab
+- [x] 3.5 Final readability NFR gate — ac436ab
