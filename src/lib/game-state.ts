@@ -1,5 +1,6 @@
 import { MAP_FIELDS } from "@/data/map";
 import { UNIT_TYPES } from "@/data/units";
+import { applyMove, armySpeed } from "@/lib/movement";
 import type { Army, CountryId, GameState, UnitInstance, UnitTypeId } from "@/types";
 
 /**
@@ -57,7 +58,8 @@ export function createInitialGameState(playerCountryId: CountryId, aiCountryId: 
       id: `${draft.armyId}-u${index + 1}`,
       typeId,
     }));
-    return { id: draft.armyId, owner: draft.owner, fieldId: draft.fieldId, units };
+    const army: Army = { id: draft.armyId, owner: draft.owner, fieldId: draft.fieldId, units };
+    return { ...army, movementPoints: armySpeed(army) };
   });
 
   return { turn: 1, playerCountryId, aiCountryId, fieldOwners, armies };
@@ -85,20 +87,25 @@ export function dominantUnitType(army: Army): UnitTypeId {
   return best;
 }
 
-export interface GameAction {
-  type: "startGame";
-  playerCountryId: CountryId;
-  aiCountryId: CountryId;
-}
+export type GameAction =
+  | { type: "startGame"; playerCountryId: CountryId; aiCountryId: CountryId }
+  | { type: "moveArmy"; armyId: string; targetFieldId: string }
+  | { type: "endTurn" };
 
 /** Reducer for the GameScreen island; `null` state = setup screen. */
 export function gameReducer(state: GameState | null, action: GameAction): GameState | null {
-  // Single-action union until S-02 adds interaction actions; the discriminant
-  // check stops being "unnecessary" for the linter once a second variant lands.
   switch (action.type) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     case "startGame":
       return createInitialGameState(action.playerCountryId, action.aiCountryId);
+    case "moveArmy":
+      return state === null ? state : applyMove(state, action.armyId, action.targetFieldId);
+    case "endTurn":
+      return state === null
+        ? state
+        : {
+            ...state,
+            turn: state.turn + 1,
+            armies: state.armies.map((army) => ({ ...army, movementPoints: armySpeed(army) })),
+          };
   }
-  return state;
 }

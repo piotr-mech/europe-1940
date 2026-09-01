@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getGameData } from "@/lib/game-data";
 import { createInitialGameState, dominantUnitType, gameReducer } from "@/lib/game-state";
+import { armySpeed } from "@/lib/movement";
 import type { Army, CountryId } from "@/types";
 
 const gameData = getGameData();
@@ -58,6 +59,13 @@ describe("createInitialGameState", () => {
     }
   });
 
+  it("starts every army with full movement points", () => {
+    const state = createInitialGameState("germany", "soviet");
+    for (const army of state.armies) {
+      expect(army.movementPoints).toBe(armySpeed(army));
+    }
+  });
+
   it("throws when both sides get the same country", () => {
     expect(() => createInitialGameState("germany", "germany")).toThrow("must differ");
   });
@@ -74,6 +82,7 @@ describe("dominantUnitType", () => {
         { id: "b", typeId: "tank" },
         { id: "c", typeId: "tank" },
       ],
+      movementPoints: 1,
     };
     expect(dominantUnitType(army)).toBe("tank");
   });
@@ -87,12 +96,13 @@ describe("dominantUnitType", () => {
         { id: "a", typeId: "artillery" },
         { id: "b", typeId: "antiTank" },
       ],
+      movementPoints: 1,
     };
     expect(dominantUnitType(army)).toBe("artillery");
   });
 
   it("throws for an empty army", () => {
-    const army: Army = { id: "T3", owner: "germany", fieldId: "berlin", units: [] };
+    const army: Army = { id: "T3", owner: "germany", fieldId: "berlin", units: [], movementPoints: 1 };
     expect(() => dominantUnitType(army)).toThrow("no units");
   });
 });
@@ -109,5 +119,25 @@ describe("gameReducer", () => {
     const first = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
     const second = gameReducer(first, { type: "startGame", playerCountryId: "soviet", aiCountryId: "germany" });
     expect(second?.playerCountryId).toBe("soviet");
+  });
+
+  it("moveArmy moves the army and spends its movement points", () => {
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    // G2 stands in Warsaw (speed 1); Radom Plains is a 1-cost neighbor.
+    const next = gameReducer(state, { type: "moveArmy", armyId: "G2", targetFieldId: "radom-plains" });
+    const moved = next?.armies.find((army) => army.id === "G2");
+    expect(moved?.fieldId).toBe("radom-plains");
+    expect(moved?.movementPoints).toBe(0);
+  });
+
+  it("endTurn advances the turn and restores every army's movement", () => {
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const moved = gameReducer(state, { type: "moveArmy", armyId: "G2", targetFieldId: "radom-plains" });
+    const next = gameReducer(moved, { type: "endTurn" });
+
+    expect(next?.turn).toBe(2);
+    for (const army of next?.armies ?? []) {
+      expect(army.movementPoints).toBe(armySpeed(army));
+    }
   });
 });

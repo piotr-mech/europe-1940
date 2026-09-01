@@ -105,6 +105,8 @@ export interface Army {
   owner: CountryId;
   fieldId: string;
   units: UnitInstance[];
+  /** Movement points left this turn; reset to `armySpeed` on end turn (S-02). */
+  movementPoints: number;
 }
 
 export interface GameState {

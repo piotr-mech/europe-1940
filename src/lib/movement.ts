@@ -1,0 +1,133 @@
+/**
+ * Movement rules (change: army-movement, S-02): armies move as single tokens,
+ * the slowest unit sets the pace, and terrain changes the entry cost (FR-005).
+ * Combat-free by design — enemy-occupied fields are impassable until S-04.
+ */
+import { MAP_FIELDS } from "@/data/map";
+import { TERRAIN } from "@/data/terrain";
+import { UNIT_TYPES } from "@/data/units";
+import type { Army, GameState, MapField, UnitTypeId } from "@/types";
+
+const FIELD_BY_ID: ReadonlyMap<string, MapField> = new Map(MAP_FIELDS.map((field) => [field.id, field]));
+
+function getField(fieldId: string): MapField {
+  const field = FIELD_BY_ID.get(fieldId);
+  if (field === undefined) {
+    throw new Error(`unknown field "${fieldId}"`);
+  }
+  return field;
+}
+
+const UNIT_MOVEMENT: ReadonlyMap<UnitTypeId, number> = new Map(
+  UNIT_TYPES.map((unitType) => [unitType.id, unitType.movement]),
+);
+
+/** The army's pace: the slowest unit's movement (FR-005). */
+export function armySpeed(army: Army): number {
+  if (army.units.length === 0) {
+    throw new Error(`army "${army.id}" has no units`);
+  }
+  const movements = army.units.map((unit) => UNIT_MOVEMENT.get(unit.typeId));
+  if (movements.some((movement) => movement === undefined)) {
+    throw new Error(`army "${army.id}" contains an unknown unit type`);
+  }
+  return Math.min(...(movements as number[]));
+}
+
+/** Entry cost of a field; cities are flat cost 1 — `TERRAIN` has no "city" key. */
+export function movementCostOf(field: MapField): number {
+  return field.type === "city" ? 1 : TERRAIN[field.type].movementCost;
+}
+
+/**
+ * Cheapest-path reachability within the army's remaining movement points.
+ * Fields occupied by an enemy army are impassable; own armies' fields are
+ * passable (merge targets). The army's own field is not part of the result.
+ */
+export function reachableFields(state: GameState, armyId: string): Map<string, { cost: number; path: string[] }> {
+  const army = state.armies.find((candidate) => candidate.id === armyId);
+  if (army === undefined) {
+    throw new Error(`unknown army "${armyId}"`);
+  }
+
+  const blocked = new Set(
+    state.armies.filter((candidate) => candidate.owner !== army.owner).map((candidate) => candidate.fieldId),
+  );
+
+  const best = new Map<string, { cost: number; path: string[] }>();
+  const queue: { id: string; cost: number; path: string[] }[] = [{ id: army.fieldId, cost: 0, path: [army.fieldId] }];
+  while (queue.length > 0) {
+    queue.sort((a, b) => a.cost - b.cost);
+    const current = queue.shift();
+    if (current === undefined || best.has(current.id)) {
+      continue;
+    }
+    if (current.id !== army.fieldId) {
+      best.set(current.id, { cost: current.cost, path: current.path });
+    }
+    for (const nextId of getField(current.id).connections) {
+      if (blocked.has(nextId) || best.has(nextId)) {
+        continue;
+      }
+      const cost = current.cost + movementCostOf(getField(nextId));
+      if (cost <= army.movementPoints) {
+        queue.push({ id: nextId, cost, path: [...current.path, nextId] });
+      }
+    }
+  }
+  return best;
+}
+
+/** The cheapest path to `targetFieldId`, or null when out of reach. */
+export function planMove(
+  state: GameState,
+  armyId: string,
+  targetFieldId: string,
+): { path: string[]; cost: number } | null {
+  return reachableFields(state, armyId).get(targetFieldId) ?? null;
+}
+
+/**
+ * Pure application of a move: spend the path cost, walk the army along it,
+ * flip every non-city field entered to the mover's owner, and merge into a
+ * standing own army on the target (FR-004 cap of 8). Throws on illegal moves.
+ */
+export function applyMove(state: GameState, armyId: string, targetFieldId: string): GameState {
+  const army = state.armies.find((candidate) => candidate.id === armyId);
+  if (army === undefined) {
+    throw new Error(`unknown army "${armyId}"`);
+  }
+  const plan = planMove(state, armyId, targetFieldId);
+  if (plan === null) {
+    throw new Error(`field "${targetFieldId}" is not reachable for army "${armyId}"`);
+  }
+
+  const standing = state.armies.find(
+    (candidate) => candidate.id !== army.id && candidate.fieldId === targetFieldId && candidate.owner === army.owner,
+  );
+  if (standing !== undefined && standing.units.length + army.units.length > 8) {
+    throw new Error(`merging armies "${army.id}" and "${standing.id}" would exceed the 8-unit limit`);
+  }
+
+  const armies =
+    standing !== undefined
+      ? state.armies
+          .filter((candidate) => candidate.id !== army.id)
+          .map((candidate) =>
+            candidate.id === standing.id ? { ...candidate, units: [...candidate.units, ...army.units] } : candidate,
+          )
+      : state.armies.map((candidate) =>
+          candidate.id === army.id
+            ? { ...candidate, fieldId: targetFieldId, movementPoints: candidate.movementPoints - plan.cost }
+            : candidate,
+        );
+
+  const fieldOwners = { ...state.fieldOwners };
+  for (const fieldId of plan.path.slice(1)) {
+    if (getField(fieldId).type !== "city") {
+      fieldOwners[fieldId] = army.owner;
+    }
+  }
+
+  return { ...state, armies, fieldOwners };
+}

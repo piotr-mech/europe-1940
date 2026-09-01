@@ -43,7 +43,7 @@ A simple, turn-based, board-game-style strategy game set in Europe 1940 — buil
 | ---- | -------------------- | -------------------------------------------------------------------------- | ------------- | ------------------------------ | -------- |
 | F-01 | game-data-contract   | (foundation) game reads the prototype map and balance data from data files | —             | FR-001, OQ-2 (resolved)        | done      |
 | S-01 | new-game-map-view    | start a new game (picking own and AI country) and see the board-game map   | F-01          | FR-001, US-01                  | done      |
-| S-02 | army-movement        | form armies, move them across the map, inspect cities and armies           | S-01          | FR-004, FR-005, FR-006, US-01  | proposed |
+| S-02 | army-movement        | form armies, move them across the map, inspect cities and armies           | S-01          | FR-004, FR-005, FR-006, US-01  | in-progress |
 | S-03 | resources-production | collect city income each turn and order new units in cities                | S-01          | FR-002, FR-003, US-01          | proposed |
 | S-04 | battle-city-capture  | attack an enemy field, win an automatic battle, take ownership of a city   | S-02, S-03    | FR-007, FR-008, FR-009, US-01  | proposed |
 | S-05 | supply-lines         | see supply status and suffer the penalty when the line is cut              | S-04          | FR-010, FR-011, Business Logic | proposed |
@@ -112,7 +112,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Movement rules feed the battle slice; keeping it free of combat keeps both halves plannable.
-- **Status:** proposed
+- **Status:** in-progress
 
 ### S-03: Resources and production
 
