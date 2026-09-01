@@ -279,10 +279,10 @@ A side panel showing details of the clicked field (city) or army.
 
 #### Automated
 
-- [x] 3.1 `npm run lint` passes
-- [x] 3.2 `npm run build` passes
-- [x] 3.3 `npm test` still passes
+- [x] 3.1 `npm run lint` passes — 6f25e4c
+- [x] 3.2 `npm run build` passes — 6f25e4c
+- [x] 3.3 `npm test` still passes — 6f25e4c
 
 #### Manual
 
-- [x] 3.4 Panel content verified for city and army (values match dataset; updates after move/end turn)
+- [x] 3.4 Panel content verified for city and army (values match dataset; updates after move/end turn) — 6f25e4c
