@@ -1,17 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import backgroundUrl from "@/assets/europe-regions.svg?url";
+import { UNIT_ICON } from "@/components/game/unit-icons";
 import { getGameData } from "@/lib/game-data";
 import { dominantUnitType } from "@/lib/game-state";
-import type { GameState, MapField, UnitTypeId } from "@/types";
-
-/** Dominant-type symbol on army tokens (spec §23). */
-const DOMINANT_LETTER: Record<UnitTypeId, string> = {
-  infantry: "P",
-  tank: "C",
-  artillery: "A",
-  antiTank: "D",
-};
+import type { GameState, MapField } from "@/types";
 
 const CANVAS_W = 1800;
 const CANVAS_H = 1200;
@@ -25,8 +18,11 @@ const TOKEN_HIT_PADDING = 3;
 /** Token offset below-right of its field (shared with the render below). */
 const TOKEN_OFFSET_X = 6;
 const TOKEN_OFFSET_Y = 5;
-const TOKEN_W = 18;
-const TOKEN_H = 9;
+const TOKEN_W = 28;
+const TOKEN_H = 18;
+/** Dominant-unit icon inside the token, with padding. */
+const ICON_SIZE = 14;
+const ICON_PAD = 2;
 
 interface BoardMapProps {
   state: GameState;
@@ -270,7 +266,7 @@ export function BoardMap({ state, selectedArmyId, reachable, onArmyClick, onFiel
         );
       })}
 
-      {/* Army tokens: owner color, unit count, dominant-type letter. */}
+      {/* Army tokens: owner color, dominant-unit image, unit count. */}
       {state.armies.map((army) => {
         const field = fieldById.get(army.fieldId);
         if (field === undefined) return null; // unreachable: validated state
@@ -301,15 +297,22 @@ export function BoardMap({ state, selectedArmyId, reachable, onArmyClick, onFiel
               stroke="#f8fafc"
               strokeWidth={1}
             />
+            <image
+              href={UNIT_ICON[dominantUnitType(army)]}
+              x={tokenX + ICON_PAD}
+              y={tokenY + (TOKEN_H - ICON_SIZE) / 2}
+              width={ICON_SIZE}
+              height={ICON_SIZE}
+            />
             <text
-              x={tokenX + TOKEN_W / 2}
-              y={tokenY + 6.5}
+              x={tokenX + ICON_PAD + ICON_SIZE + (TOKEN_W - ICON_SIZE - 2 * ICON_PAD) / 2}
+              y={tokenY + TOKEN_H / 2 + 2}
               textAnchor="middle"
-              fontSize={5}
+              fontSize={7}
               fontWeight={700}
               fill="#f8fafc"
             >
-              {`${army.units.length}·${DOMINANT_LETTER[dominantUnitType(army)]}`}
+              {army.units.length}
             </text>
           </g>
         );

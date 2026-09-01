@@ -1,6 +1,7 @@
 import { getGameData } from "@/lib/game-data";
 import { dominantUnitType } from "@/lib/game-state";
 import { armySpeed, movementCostOf } from "@/lib/movement";
+import { UNIT_ICON } from "@/components/game/unit-icons";
 import type { Country, GameState, ResourceId, TerrainType, UnitTypeId } from "@/types";
 
 /** What the inspection panel shows (FR-006): a city, a terrain field, or an army. */
@@ -87,13 +88,19 @@ export function DetailPanel({ state, selected }: DetailPanelProps) {
               const unitType = unitTypeById.get(typeId);
               if (unitType === undefined) return null;
               return (
-                <li key={typeId} className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5">
-                  <span className="font-semibold">
-                    {count}× {unitType.name}
-                  </span>
-                  <span className="block text-xs text-slate-500">
-                    Atak {unitType.attack} · Obrona {unitType.defense} · Ruch {unitType.movement}
-                    {unitType.bonusVsTank !== null ? ` · +${unitType.bonusVsTank} vs czołgi` : ""}
+                <li
+                  key={typeId}
+                  className="flex items-center gap-2.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5"
+                >
+                  <img src={UNIT_ICON[typeId]} alt="" className="h-8 w-8 shrink-0" />
+                  <span className="min-w-0">
+                    <span className="font-semibold">
+                      {count}× {unitType.name}
+                    </span>
+                    <span className="block text-xs text-slate-500">
+                      Atak {unitType.attack} · Obrona {unitType.defense} · Ruch {unitType.movement}
+                      {unitType.bonusVsTank !== null ? ` · +${unitType.bonusVsTank} vs czołgi` : ""}
+                    </span>
                   </span>
                 </li>
               );
