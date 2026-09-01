@@ -255,9 +255,9 @@ A side panel showing details of the clicked field (city) or army.
 
 #### Automated
 
-- [x] 1.1 `npm test` passes (new movement tests + existing suite)
-- [x] 1.2 `npm run lint` passes
-- [x] 1.3 `npm run build` passes
+- [x] 1.1 `npm test` passes (new movement tests + existing suite) — 5e0dbff
+- [x] 1.2 `npm run lint` passes — 5e0dbff
+- [x] 1.3 `npm run build` passes — 5e0dbff
 
 #### Manual
 
@@ -267,13 +267,13 @@ A side panel showing details of the clicked field (city) or army.
 
 #### Automated
 
-- [ ] 2.1 `npm run lint` passes
-- [ ] 2.2 `npm run build` passes
-- [ ] 2.3 `npm test` still passes (no engine regressions)
+- [x] 2.1 `npm run lint` passes
+- [x] 2.2 `npm run build` passes
+- [x] 2.3 `npm test` still passes (no engine regressions)
 
 #### Manual
 
-- [ ] 2.4 Board interactions verified on `/game` (selection, reach highlight, move, merge, end turn, pan/zoom intact)
+- [x] 2.4 Board interactions verified on `/game` (selection, reach highlight, move, merge, end turn, pan/zoom intact)
 
 ### Phase 3: Inspection panels (FR-006)
 

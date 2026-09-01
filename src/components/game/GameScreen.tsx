@@ -3,8 +3,9 @@ import { useReducer, useState } from "react";
 import { BoardMap } from "@/components/game/BoardMap";
 import { getGameData } from "@/lib/game-data";
 import { gameReducer } from "@/lib/game-state";
+import { reachableFields } from "@/lib/movement";
 import { cn } from "@/lib/utils";
-import type { Country, CountryId } from "@/types";
+import type { Country, CountryId, GameState } from "@/types";
 
 interface CountryOptionProps {
   country: Country;
@@ -48,6 +49,7 @@ export function GameScreen() {
   const [state, dispatch] = useReducer(gameReducer, null);
   const [playerCountryId, setPlayerCountryId] = useState<CountryId>("germany");
   const [aiCountryId, setAiCountryId] = useState<CountryId>("soviet");
+  const [selectedArmyId, setSelectedArmyId] = useState<string | null>(null);
 
   // Picking a side in one group swaps the other, so the two can never be equal.
   const pickPlayerCountry = (id: CountryId): void => {
@@ -109,16 +111,60 @@ export function GameScreen() {
   const playerCountry = data.countries.find((country) => country.id === state.playerCountryId);
   const aiCountry = data.countries.find((country) => country.id === state.aiCountryId);
 
+  // The selected army's reach this turn (selection is UI state, not game state).
+  const reachable = computeReach(state, selectedArmyId);
+  const onArmyClick = (armyId: string): void => {
+    const army = state.armies.find((candidate) => candidate.id === armyId);
+    // Only the player's own armies create a movement selection.
+    if (army?.owner !== state.playerCountryId) {
+      setSelectedArmyId(null);
+      return;
+    }
+    setSelectedArmyId((current) => (current === armyId ? null : armyId));
+  };
+  const onFieldClick = (fieldId: string | null): void => {
+    if (fieldId !== null && selectedArmyId !== null && reachable.has(fieldId)) {
+      dispatch({ type: "moveArmy", armyId: selectedArmyId, targetFieldId: fieldId });
+    }
+    setSelectedArmyId(null);
+  };
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
-      <header className="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <header className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1">
         <h1 className="text-2xl font-bold">EUROPE 1940</h1>
         <p className="text-sm text-slate-600">
           Tura {state.turn} · Grasz: {playerCountry?.name ?? state.playerCountryId} · AI:{" "}
           {aiCountry?.name ?? state.aiCountryId}
         </p>
+        <button
+          type="button"
+          onClick={() => {
+            dispatch({ type: "endTurn" });
+            setSelectedArmyId(null);
+          }}
+          className="ml-auto rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+        >
+          Koniec tury
+        </button>
       </header>
-      <BoardMap state={state} />
+      <BoardMap
+        state={state}
+        selectedArmyId={selectedArmyId}
+        reachable={reachable}
+        onArmyClick={onArmyClick}
+        onFieldClick={onFieldClick}
+      />
     </main>
   );
+}
+
+function computeReach(state: GameState, selectedArmyId: string | null): ReadonlySet<string> {
+  if (selectedArmyId === null) return new Set();
+  try {
+    return new Set(reachableFields(state, selectedArmyId).keys());
+  } catch {
+    // Selection outlived its army (e.g. merged away) — treat as no selection.
+    return new Set();
+  }
 }

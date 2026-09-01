@@ -17,9 +17,25 @@ const CANVAS_W = 1800;
 const CANVAS_H = 1200;
 const MIN_VIEW_W = 300; // max zoom-in: a 300-wide window over the 1800 canvas
 const ZOOM_STEP = 0.85;
+// Screen-space: a down/up pair closer than this is a click, not a pan.
+const CLICK_THRESHOLD_PX = 5;
+// SVG units: hit tolerance around a field center / army token rect.
+const FIELD_HIT_TOLERANCE = 12;
+const TOKEN_HIT_PADDING = 3;
+/** Token offset below-right of its field (shared with the render below). */
+const TOKEN_OFFSET_X = 6;
+const TOKEN_OFFSET_Y = 5;
+const TOKEN_W = 18;
+const TOKEN_H = 9;
 
 interface BoardMapProps {
   state: GameState;
+  selectedArmyId: string | null;
+  /** Field ids the selected army can enter this turn (empty when nothing is selected). */
+  reachable: ReadonlySet<string>;
+  onArmyClick: (armyId: string) => void;
+  /** Field click, or null when the click landed on the map background. */
+  onFieldClick: (fieldId: string | null) => void;
 }
 
 interface View {
@@ -53,10 +69,13 @@ function zoomAtCursor(view: View, clientX: number, clientY: number, rect: DOMRec
 /**
  * Board-game map render (spec §23): geographic background, connections as
  * lines with white casing, fields as points in ownership colors (cities large
- * and labeled), static army tokens. Wheel zooms at the cursor, dragging pans,
- * double-click resets the view (map navigation only — game interactions are S-02+).
+ * and labeled), army tokens. Wheel zooms at the cursor, dragging pans,
+ * double-click resets the view. The root captures the pointer on every down,
+ * so clicks are detected manually: a down/up pair under a screen-space
+ * threshold hit-tests the nearest army token or field from the dataset
+ * coordinates (plain onClick on children would be retargeted to the root).
  */
-export function BoardMap({ state }: BoardMapProps) {
+export function BoardMap({ state, selectedArmyId, reachable, onArmyClick, onFieldClick }: BoardMapProps) {
   const data = getGameData();
   const [view, setView] = useState<View>(FULL_VIEW);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -97,13 +116,56 @@ export function BoardMap({ state }: BoardMapProps) {
     );
   };
 
-  const onPointerUp = (): void => {
+  const onPointerUp = (event: React.PointerEvent<SVGSVGElement>): void => {
+    const drag = dragRef.current;
     dragRef.current = null;
+    if (drag === null) return;
+    const moved = Math.hypot(event.clientX - drag.clientX, event.clientY - drag.clientY);
+    if (moved < CLICK_THRESHOLD_PX) {
+      handleClick(event.clientX, event.clientY);
+    }
   };
 
   // Hook-free derivations: the dataset is tiny — no memoization needed.
   const colorByCountry = new Map<string, string>(data.countries.map((country) => [country.id, country.color]));
   const fieldById = new Map(data.fields.map((field) => [field.id, field]));
+
+  /** Manual click hit-test: tokens (offset from their field) win over field circles. */
+  const handleClick = (clientX: number, clientY: number): void => {
+    const svg = svgRef.current;
+    if (svg === null) return;
+    const rect = svg.getBoundingClientRect();
+    const scale = view.w / rect.width;
+    const x = view.x + (clientX - rect.left) * scale;
+    const y = view.y + (clientY - rect.top) * scale;
+
+    for (const army of state.armies) {
+      const field = fieldById.get(army.fieldId);
+      if (field === undefined) continue; // unreachable: validated state
+      const tokenX = field.x + TOKEN_OFFSET_X;
+      const tokenY = field.y + TOKEN_OFFSET_Y;
+      if (
+        x >= tokenX - TOKEN_HIT_PADDING &&
+        x <= tokenX + TOKEN_W + TOKEN_HIT_PADDING &&
+        y >= tokenY - TOKEN_HIT_PADDING &&
+        y <= tokenY + TOKEN_H + TOKEN_HIT_PADDING
+      ) {
+        onArmyClick(army.id);
+        return;
+      }
+    }
+
+    let nearest: MapField | null = null;
+    let nearestDistSq = FIELD_HIT_TOLERANCE * FIELD_HIT_TOLERANCE;
+    for (const field of data.fields) {
+      const distSq = (field.x - x) ** 2 + (field.y - y) ** 2;
+      if (distSq <= nearestDistSq) {
+        nearest = field;
+        nearestDistSq = distSq;
+      }
+    }
+    onFieldClick(nearest?.id ?? null);
+  };
 
   // Deduplicate the symmetric connection list into unique edges.
   const edges: [MapField, MapField][] = [];
@@ -185,25 +247,63 @@ export function BoardMap({ state }: BoardMapProps) {
           </g>
         ))}
 
-      {/* Army tokens: owner color, unit count, dominant-type letter (static in S-01). */}
+      {/* Reach highlight: dashed ring on every field the selected army can enter. */}
+      {[...reachable].map((fieldId) => {
+        const field = fieldById.get(fieldId);
+        if (field === undefined) return null;
+        return (
+          <circle
+            key={`reach-${fieldId}`}
+            cx={field.x}
+            cy={field.y}
+            r={field.type === "city" ? 10 : 8}
+            fill="none"
+            stroke="#f8fafc"
+            strokeWidth={1.5}
+            strokeDasharray="3 2"
+          />
+        );
+      })}
+
+      {/* Army tokens: owner color, unit count, dominant-type letter. */}
       {state.armies.map((army) => {
         const field = fieldById.get(army.fieldId);
         if (field === undefined) return null; // unreachable: validated state
-        const tokenX = field.x + 6;
-        const tokenY = field.y + 5;
+        const tokenX = field.x + TOKEN_OFFSET_X;
+        const tokenY = field.y + TOKEN_OFFSET_Y;
+        const selected = army.id === selectedArmyId;
         return (
-          <g key={army.id}>
+          <g key={army.id} style={{ cursor: army.owner === state.playerCountryId ? "pointer" : "default" }}>
+            {selected && (
+              <rect
+                x={tokenX - 2}
+                y={tokenY - 2}
+                width={TOKEN_W + 4}
+                height={TOKEN_H + 4}
+                rx={3}
+                fill="none"
+                stroke="#f8fafc"
+                strokeWidth={1.5}
+              />
+            )}
             <rect
               x={tokenX}
               y={tokenY}
-              width={18}
-              height={9}
+              width={TOKEN_W}
+              height={TOKEN_H}
               rx={2}
               fill={colorByCountry.get(army.owner) ?? "#94a3b8"}
               stroke="#f8fafc"
               strokeWidth={1}
             />
-            <text x={tokenX + 9} y={tokenY + 6.5} textAnchor="middle" fontSize={5} fontWeight={700} fill="#f8fafc">
+            <text
+              x={tokenX + TOKEN_W / 2}
+              y={tokenY + 6.5}
+              textAnchor="middle"
+              fontSize={5}
+              fontWeight={700}
+              fill="#f8fafc"
+            >
               {`${army.units.length}·${DOMINANT_LETTER[dominantUnitType(army)]}`}
             </text>
           </g>
