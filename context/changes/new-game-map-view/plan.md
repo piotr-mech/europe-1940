@@ -228,23 +228,23 @@ Starting armies are drafts in the factory; the balance CSV swap (F-01 contract) 
 
 #### Automated
 
-- [x] 2.1 `npm test` passes
-- [x] 2.2 `npm run lint` passes
-- [x] 2.3 `npm run build` passes
+- [x] 2.1 `npm test` passes — 15d741d
+- [x] 2.2 `npm run lint` passes — 15d741d
+- [x] 2.3 `npm run build` passes — 15d741d
 
 #### Manual
 
-- [x] 2.4 `/game` demo board — first readability judgment
+- [x] 2.4 `/game` demo board — first readability judgment — 15d741d
 
 ### Phase 3: New game screen and island wiring
 
 #### Automated
 
-- [ ] 3.1 `npm test` passes
-- [ ] 3.2 `npm run lint` passes
-- [ ] 3.3 `npm run build` passes
+- [x] 3.1 `npm test` passes
+- [x] 3.2 `npm run lint` passes
+- [x] 3.3 `npm run build` passes
 
 #### Manual
 
-- [ ] 3.4 Full setup flow verified (countries, constraint, refresh)
-- [ ] 3.5 Final readability NFR gate
+- [x] 3.4 Full setup flow verified (countries, constraint, refresh)
+- [x] 3.5 Final readability NFR gate
