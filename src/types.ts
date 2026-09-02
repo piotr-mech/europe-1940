@@ -107,6 +107,8 @@ export interface BattleModifier {
 /** Everything the UI panel shows after a battle (S-04, FR-007). */
 export interface BattleReport {
   attackerArmyId: string;
+  /** The attacking country — lets the UI pick the player's side even after the attacker is destroyed. */
+  attackerOwner: CountryId;
   defenderArmyIds: string[];
   fieldId: string;
   attackerWins: boolean;

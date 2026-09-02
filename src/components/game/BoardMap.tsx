@@ -29,6 +29,8 @@ interface BoardMapProps {
   selectedArmyId: string | null;
   /** Field ids the selected army can enter this turn (empty when nothing is selected). */
   reachable: ReadonlySet<string>;
+  /** Enemy-occupied field ids the selected army can attack this turn (S-04). */
+  attackTargets: ReadonlySet<string>;
   onArmyClick: (armyId: string) => void;
   /** Field click, or null when the click landed on the map background. */
   onFieldClick: (fieldId: string | null) => void;
@@ -71,7 +73,14 @@ function zoomAtCursor(view: View, clientX: number, clientY: number, rect: DOMRec
  * threshold hit-tests the nearest army token or field from the dataset
  * coordinates (plain onClick on children would be retargeted to the root).
  */
-export function BoardMap({ state, selectedArmyId, reachable, onArmyClick, onFieldClick }: BoardMapProps) {
+export function BoardMap({
+  state,
+  selectedArmyId,
+  reachable,
+  attackTargets,
+  onArmyClick,
+  onFieldClick,
+}: BoardMapProps) {
   const data = getGameData();
   const [view, setView] = useState<View>(FULL_VIEW);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -260,6 +269,25 @@ export function BoardMap({ state, selectedArmyId, reachable, onArmyClick, onFiel
             r={field.type === "city" ? 10 : 8}
             fill="none"
             stroke="#f8fafc"
+            strokeWidth={1.5}
+            strokeDasharray="3 2"
+          />
+        );
+      })}
+
+      {/* Attack highlight (S-04): red dashed ring on enemy fields the selected
+          army can reach — clicking one starts the automatic battle (FR-007). */}
+      {[...attackTargets].map((fieldId) => {
+        const field = fieldById.get(fieldId);
+        if (field === undefined) return null;
+        return (
+          <circle
+            key={`attack-${fieldId}`}
+            cx={field.x}
+            cy={field.y}
+            r={field.type === "city" ? 10 : 8}
+            fill="none"
+            stroke="#dc2626"
             strokeWidth={1.5}
             strokeDasharray="3 2"
           />

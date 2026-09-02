@@ -3,7 +3,7 @@ import { dominantUnitType, type GameAction } from "@/lib/game-state";
 import { armySpeed, movementCostOf } from "@/lib/movement";
 import { freeProductionSlots, unitCostFor } from "@/lib/production";
 import { UNIT_ICON } from "@/components/game/unit-icons";
-import type { Country, GameState, ResourceId, TerrainType, UnitTypeId } from "@/types";
+import type { BattleModifier, BattleReport, Country, GameState, ResourceId, TerrainType, UnitTypeId } from "@/types";
 
 /** What the inspection panel shows (FR-006): a city, a terrain field, or an army. */
 export type SelectedSubject =
@@ -63,7 +63,12 @@ export function DetailPanel({ state, selected, dispatch }: DetailPanelProps) {
   let body: React.ReactNode;
 
   if (selected === null) {
-    body = <p className="text-sm text-slate-500">Kliknij miasto, pole lub armię na mapie, aby zobaczyć szczegóły.</p>;
+    body =
+      state.lastBattleReport !== null ? (
+        <BattleReportView state={state} report={state.lastBattleReport} />
+      ) : (
+        <p className="text-sm text-slate-500">Kliknij miasto, pole lub armię na mapie, aby zobaczyć szczegóły.</p>
+      );
   } else if (selected.kind === "army") {
     const army = state.armies.find((candidate) => candidate.id === selected.armyId);
     if (army === undefined) {
@@ -171,6 +176,62 @@ export function DetailPanel({ state, selected, dispatch }: DetailPanelProps) {
     <aside className="w-72 shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-4" aria-label="Panel szczegółów">
       {body}
     </aside>
+  );
+}
+
+interface BattleReportViewProps {
+  state: GameState;
+  report: BattleReport;
+}
+
+function ModifierList({ title, modifiers }: { title: string; modifiers: BattleModifier[] }) {
+  if (modifiers.length === 0) return null;
+  return (
+    <div className="grid gap-1">
+      <h4 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">{title}</h4>
+      <ul className="grid gap-1">
+        {modifiers.map((modifier) => (
+          <li key={modifier.label} className="flex items-baseline justify-between gap-2 text-sm">
+            <span className="text-slate-600">{modifier.label}</span>
+            <span className={modifier.amount >= 0 ? "font-semibold text-emerald-700" : "font-semibold text-red-700"}>
+              {modifier.amount >= 0 ? "+" : "−"}
+              {Math.abs(modifier.amount)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * The most recent battle's report (S-04, FR-007): winner, both sides' losses
+ * and the modifiers that decided it — the NFR's "no unexplainable outcomes".
+ * Shown whenever no other subject is selected; the next selection replaces it.
+ */
+function BattleReportView({ state, report }: BattleReportViewProps) {
+  const data = getGameData();
+  const field = data.fields.find((candidate) => candidate.id === report.fieldId);
+  const playerWasAttacker = report.attackerOwner === state.playerCountryId;
+  const playerWon = playerWasAttacker === report.attackerWins;
+
+  return (
+    <div className="grid gap-3">
+      <header>
+        <h2 className="text-lg font-bold">Bitwa{field !== undefined ? ` o ${field.name}` : ""}</h2>
+        <p className={`text-sm font-semibold ${playerWon ? "text-emerald-700" : "text-red-700"}`}>
+          {playerWon ? "Zwycięstwo!" : "Porażka"}
+        </p>
+      </header>
+      <dl className="grid gap-1 text-sm">
+        <StatRow label="Siła ataku" value={String(report.attackStrength)} />
+        <StatRow label="Siła obrony" value={String(report.defenseStrength)} />
+        <StatRow label="Straty atakującego" value={`−${report.attackerLosses}`} />
+        <StatRow label="Straty obrońcy" value={`−${report.defenderLosses}`} />
+      </dl>
+      <ModifierList title="Modyfikatory ataku" modifiers={report.attackModifiers} />
+      <ModifierList title="Modyfikatory obrony" modifiers={report.defenseModifiers} />
+    </div>
   );
 }
 

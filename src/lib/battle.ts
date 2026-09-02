@@ -183,6 +183,7 @@ export function resolveBattle(state: GameState, armyId: string, targetFieldId: s
     );
     const report: BattleReport = {
       attackerArmyId: army.id,
+      attackerOwner: army.owner,
       defenderArmyIds: defenders.map((defender) => defender.id),
       fieldId: targetFieldId,
       attackerWins: true,
@@ -213,6 +214,7 @@ export function resolveBattle(state: GameState, armyId: string, targetFieldId: s
     );
   const report: BattleReport = {
     attackerArmyId: army.id,
+    attackerOwner: army.owner,
     defenderArmyIds: defenders.map((defender) => defender.id),
     fieldId: targetFieldId,
     attackerWins: false,

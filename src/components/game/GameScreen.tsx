@@ -4,7 +4,7 @@ import { BoardMap } from "@/components/game/BoardMap";
 import { DetailPanel, RESOURCE_LABELS, type SelectedSubject } from "@/components/game/DetailPanel";
 import { getGameData } from "@/lib/game-data";
 import { gameReducer } from "@/lib/game-state";
-import { reachableFields } from "@/lib/movement";
+import { attackFields, reachableFields } from "@/lib/movement";
 import { cn } from "@/lib/utils";
 import type { Country, CountryId, GameState, ResourceId } from "@/types";
 
@@ -117,12 +117,26 @@ export function GameScreen() {
 
   // The selected army's reach this turn (selection is UI state, not game state).
   const reachable = computeReach(state, selectedArmyId);
+  // Enemy-occupied fields the selected army can attack (S-04, FR-007).
+  const attackTargets = computeAttackTargets(state, selectedArmyId);
+  const attack = (targetFieldId: string): void => {
+    if (selectedArmyId === null) return;
+    dispatch({ type: "attackArmy", armyId: selectedArmyId, targetFieldId });
+    setSelectedArmyId(null);
+    setSelectedSubject(null); // the battle report takes the panel (S-04)
+  };
   const onArmyClick = (armyId: string): void => {
     const army = state.armies.find((candidate) => candidate.id === armyId);
     // Only the player's own armies create a movement selection.
     if (army?.owner !== state.playerCountryId) {
+      // Clicking an enemy army while one of ours is selected and the enemy's
+      // field is in attack range means attack (S-04) — else inspection only.
+      if (selectedArmyId !== null && army !== undefined && attackTargets.has(army.fieldId)) {
+        attack(army.fieldId);
+        return;
+      }
       setSelectedArmyId(null);
-      setSelectedSubject({ kind: "army", armyId }); // enemy armies: inspection only
+      setSelectedSubject({ kind: "army", armyId });
       return;
     }
     setSelectedArmyId((current) => (current === armyId ? null : armyId));
@@ -134,6 +148,10 @@ export function GameScreen() {
     if (fieldId === null) {
       setSelectedArmyId(null);
       setSelectedSubject(null);
+      return;
+    }
+    if (selectedArmyId !== null && attackTargets.has(fieldId)) {
+      attack(fieldId); // enemy-occupied field within reach: battle, not move
       return;
     }
     if (selectedArmyId !== null && reachable.has(fieldId)) {
@@ -187,6 +205,7 @@ export function GameScreen() {
             state={state}
             selectedArmyId={selectedArmyId}
             reachable={reachable}
+            attackTargets={attackTargets}
             onArmyClick={onArmyClick}
             onFieldClick={onFieldClick}
           />
@@ -203,6 +222,16 @@ function computeReach(state: GameState, selectedArmyId: string | null): Readonly
     return new Set(reachableFields(state, selectedArmyId).keys());
   } catch {
     // Selection outlived its army (e.g. merged away) — treat as no selection.
+    return new Set();
+  }
+}
+
+function computeAttackTargets(state: GameState, selectedArmyId: string | null): ReadonlySet<string> {
+  if (selectedArmyId === null) return new Set();
+  try {
+    return new Set(attackFields(state, selectedArmyId).keys());
+  } catch {
+    // Selection outlived its army (e.g. destroyed in battle) — no targets.
     return new Set();
   }
 }

@@ -256,19 +256,19 @@ Map is 29 fields, armies ≤ 8 units; battle resolution is O(units) arithmetic o
 
 #### Automated
 
-- [x] 2.1 `npm test` — reducer attackArmy suite green (seed advance, report stored, illegal attack unchanged, dev errors propagate)
-- [x] 2.2 `npm run lint`
-- [x] 2.3 `npm run build`
+- [x] 2.1 `npm test` — reducer attackArmy suite green (seed advance, report stored, illegal attack unchanged, dev errors propagate) — 7cd29cc
+- [x] 2.2 `npm run lint` — 7cd29cc
+- [x] 2.3 `npm run build` — 7cd29cc
 
 ### Phase 3: Attack UX and battle report
 
 #### Automated
 
-- [ ] 3.1 `npm test`
-- [ ] 3.2 `npm run lint`
-- [ ] 3.3 `npm run build`
+- [x] 3.1 `npm test`
+- [x] 3.2 `npm run lint`
+- [x] 3.3 `npm run build`
 
 #### Manual
 
-- [ ] 3.4 Full US-01 flow on `/game` (produce → move → attack → report → capture → next-turn income)
-- [ ] 3.5 Losing battle: attacker army disappears, report shows the loss
+- [x] 3.4 Full US-01 flow on `/game` (produce → move → attack → report → capture → next-turn income)
+- [x] 3.5 Losing battle: attacker army disappears, report shows the loss
