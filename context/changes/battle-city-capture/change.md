@@ -1,7 +1,7 @@
 ---
 change_id: battle-city-capture
 title: Automatic battle and city capture
-status: implementing
+status: implemented
 created: 2026-09-02
 updated: 2026-09-02
 archived_at: null

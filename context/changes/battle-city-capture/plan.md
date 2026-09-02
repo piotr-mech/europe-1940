@@ -329,10 +329,10 @@ Map is 29 fields, armies ≤ 8 units; battle resolution is O(units) arithmetic o
 
 #### Automated
 
-- [x] 4.1 `npm test` — deathLog suite green (alternation, per-side counts match losses, end-of-array order, compositions carried)
-- [x] 4.2 `npm run lint`
-- [x] 4.3 `npm run build`
+- [x] 4.1 `npm test` — deathLog suite green (alternation, per-side counts match losses, end-of-array order, compositions carried) — 8a6a3a0
+- [x] 4.2 `npm run lint` — 8a6a3a0
+- [x] 4.3 `npm run build` — 8a6a3a0
 
 #### Manual
 
-- [x] 4.4 Popup plays the battle (one death per second, alternating sides), closes after the final death; panel recap remains; map state matches the outcome
+- [x] 4.4 Popup plays the battle (one death per second, alternating sides), closes after the final death; panel recap remains; map state matches the outcome — 8a6a3a0
