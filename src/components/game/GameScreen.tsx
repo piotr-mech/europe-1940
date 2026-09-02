@@ -4,7 +4,7 @@ import { BattlePopup } from "@/components/game/BattlePopup";
 import { BoardMap } from "@/components/game/BoardMap";
 import { DetailPanel, RESOURCE_LABELS, type SelectedSubject } from "@/components/game/DetailPanel";
 import { getGameData } from "@/lib/game-data";
-import { gameReducer } from "@/lib/game-state";
+import { gameReducer, isDomainError } from "@/lib/game-state";
 import { attackFields, reachableFields } from "@/lib/movement";
 import { cn } from "@/lib/utils";
 import type { BattleReport, Country, CountryId, GameState, ResourceId } from "@/types";
@@ -221,7 +221,10 @@ export function GameScreen() {
         </div>
         <DetailPanel state={state} selected={selectedSubject} dispatch={dispatch} />
       </div>
-      {battlePopup !== null && <BattlePopup state={state} report={battlePopup} onClose={closeBattlePopup} />}
+      {/* Keyed by the battle seed (advances every battle) so a report that changes mid-playback remounts the popup with a fresh counter (review F2). */}
+      {battlePopup !== null && (
+        <BattlePopup key={state.rngSeed} state={state} report={battlePopup} onClose={closeBattlePopup} />
+      )}
     </main>
   );
 }
@@ -230,9 +233,11 @@ function computeReach(state: GameState, selectedArmyId: string | null): Readonly
   if (selectedArmyId === null) return new Set();
   try {
     return new Set(reachableFields(state, selectedArmyId).keys());
-  } catch {
+  } catch (error) {
     // Selection outlived its army (e.g. merged away) — treat as no selection.
-    return new Set();
+    // Developer errors still propagate (lesson: bare catch masks them).
+    if (isDomainError(error)) return new Set();
+    throw error;
   }
 }
 
@@ -240,8 +245,10 @@ function computeAttackTargets(state: GameState, selectedArmyId: string | null): 
   if (selectedArmyId === null) return new Set();
   try {
     return new Set(attackFields(state, selectedArmyId).keys());
-  } catch {
+  } catch (error) {
     // Selection outlived its army (e.g. destroyed in battle) — no targets.
-    return new Set();
+    // Developer errors still propagate (lesson: bare catch masks them).
+    if (isDomainError(error)) return new Set();
+    throw error;
   }
 }

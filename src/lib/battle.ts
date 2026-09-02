@@ -89,7 +89,13 @@ export function attackerStrength(army: Army, targetField: MapField): { total: nu
       modifiers.push({ label: "Atak przez rzekę", amount: -penalty });
     }
   }
-  return { total: Math.max(0, total), modifiers };
+  if (total < 0) {
+    // Strength never drops below 0; surface the absorbed over-penalty so the
+    // report's modifier arithmetic still adds up (review F4).
+    modifiers.push({ label: "Siła nie spada poniżej 0", amount: -total });
+    total = 0;
+  }
+  return { total, modifiers };
 }
 
 /**
@@ -145,7 +151,8 @@ export function resolveBattle(state: GameState, armyId: string, targetFieldId: s
   if (defenders.length === 0) {
     throw new Error(`field "${targetFieldId}" holds no enemy army — entering it is a move, not a battle`);
   }
-  if (!attackFields(state, armyId).has(targetFieldId)) {
+  const attackPlan = attackFields(state, armyId).get(targetFieldId);
+  if (attackPlan === undefined) {
     throw new Error(`field "${targetFieldId}" is not an attack target for army "${armyId}"`);
   }
 
@@ -172,8 +179,11 @@ export function resolveBattle(state: GameState, armyId: string, targetFieldId: s
 
   if (attackerWins) {
     // Defenders are destroyed; the attacker enters the field and stops (S-04
-    // decision: an attack ends the army's movement). A captured city flips
-    // owner and loses its queue (FR-009 + S-04 cancellation decision).
+    // decision: an attack ends the army's movement). One ownership rule for
+    // moves and attacks (review F1): the marched path flips exactly as
+    // `applyMove` would — non-city fields always, undefended enemy cities as
+    // free captures with their queues cancelled — and the fought-over target
+    // always flips (city = capture, queue cancelled, FR-009).
     const armies = state.armies
       .filter((candidate) => candidate.owner === army.owner || candidate.fieldId !== targetFieldId)
       .map((candidate) =>
@@ -186,11 +196,18 @@ export function resolveBattle(state: GameState, armyId: string, targetFieldId: s
             }
           : candidate,
       );
-    const fieldOwners = { ...state.fieldOwners, [targetFieldId]: army.owner };
-    // A captured city's queue is cancelled (S-04 decision): rebuild the record
-    // without the field's entry — empty queues drop out, as in production.ts.
+    const fieldOwners = { ...state.fieldOwners };
+    const capturedCities: string[] = [];
+    for (const fieldId of attackPlan.path.slice(1, -1)) {
+      const intermediate = getField(fieldId);
+      if (intermediate.type === "city" && fieldOwners[fieldId] === army.owner) continue;
+      fieldOwners[fieldId] = army.owner;
+      if (intermediate.type === "city") capturedCities.push(fieldId);
+    }
+    fieldOwners[targetFieldId] = army.owner;
+    if (field.type === "city") capturedCities.push(targetFieldId);
     const productionQueues = Object.fromEntries(
-      Object.entries(state.productionQueues).filter(([fieldId]) => fieldId !== targetFieldId),
+      Object.entries(state.productionQueues).filter(([fieldId]) => !capturedCities.includes(fieldId)),
     );
     const defenderLosses = defenders.reduce((sum, defender) => sum + defender.units.length, 0);
     const report: BattleReport = {

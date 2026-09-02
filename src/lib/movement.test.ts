@@ -113,7 +113,7 @@ describe("attackFields", () => {
     ]);
     const targets = attackFields(state, "G");
     expect(targets.has("oder-plains")).toBe(true);
-    expect(targets.get("oder-plains")).toEqual({ cost: 1 });
+    expect(targets.get("oder-plains")).toEqual({ cost: 1, path: ["berlin", "oder-plains"] });
     expect(targets.size).toBe(1); // pomerania-plains has no enemy army
   });
 
@@ -138,7 +138,10 @@ describe("attackFields", () => {
       army("G", "germany", "krakow", ["tank"]),
       army("R", "soviet", "carpathians-mountains", ["infantry"]),
     ]);
-    expect(attackFields(tanks, "G").get("carpathians-mountains")).toEqual({ cost: 2 });
+    expect(attackFields(tanks, "G").get("carpathians-mountains")).toEqual({
+      cost: 2,
+      path: ["krakow", "carpathians-mountains"],
+    });
   });
 
   it("returns nothing when no enemy army is on the board", () => {

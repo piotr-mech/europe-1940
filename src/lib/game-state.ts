@@ -119,8 +119,12 @@ export type GameAction =
   | { type: "orderUnit"; fieldId: string; unitTypeId: UnitTypeId }
   | { type: "endTurn" };
 
-/** Rethrows developer errors (mistyped import, undefined access) — the backstop masks only domain-rule throws. */
-function isDomainError(error: unknown): boolean {
+/**
+ * Rethrows developer errors (mistyped import, undefined access) — backstops
+ * must mask only domain-rule throws (lesson: bare catch masks dev errors).
+ * Shared by the reducer cases and the UI derivations wrapping domain modules.
+ */
+export function isDomainError(error: unknown): boolean {
   return !(error instanceof ReferenceError || error instanceof TypeError || error instanceof SyntaxError);
 }
 

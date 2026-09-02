@@ -99,9 +99,12 @@ export function planMove(
  * Enemy-army-occupied fields the army can attack this turn (S-04, FR-007):
  * reachable within its movement points as terminal destinations only — the
  * Dijkstra never expands an enemy-occupied field, so no path leads *through*
- * an enemy army. The army's own field is never an attack target.
+ * an enemy army. The army's own field is never an attack target. Each target
+ * carries its path so a victorious attack can flip the marched-through fields
+ * exactly like `applyMove` does (review F1: one ownership rule for moves and
+ * attacks).
  */
-export function attackFields(state: GameState, armyId: string): Map<string, { cost: number }> {
+export function attackFields(state: GameState, armyId: string): Map<string, { cost: number; path: string[] }> {
   const army = state.armies.find((candidate) => candidate.id === armyId);
   if (army === undefined) {
     throw new Error(`unknown army "${armyId}"`);
@@ -111,9 +114,9 @@ export function attackFields(state: GameState, armyId: string): Map<string, { co
     state.armies.filter((candidate) => candidate.owner !== army.owner).map((candidate) => candidate.fieldId),
   );
 
-  const targets = new Map<string, { cost: number }>();
+  const targets = new Map<string, { cost: number; path: string[] }>();
   const done = new Set<string>();
-  const queue: { id: string; cost: number }[] = [{ id: army.fieldId, cost: 0 }];
+  const queue: { id: string; cost: number; path: string[] }[] = [{ id: army.fieldId, cost: 0, path: [army.fieldId] }];
   while (queue.length > 0) {
     queue.sort((a, b) => a.cost - b.cost);
     const current = queue.shift();
@@ -124,7 +127,7 @@ export function attackFields(state: GameState, armyId: string): Map<string, { co
     if (current.id !== army.fieldId && enemyOccupied.has(current.id)) {
       // Attack targets are terminal: the battle decides who ends up on the
       // field, so an enemy field is never expanded into a longer path.
-      targets.set(current.id, { cost: current.cost });
+      targets.set(current.id, { cost: current.cost, path: current.path });
       continue;
     }
     for (const nextId of getField(current.id).connections) {
@@ -133,7 +136,7 @@ export function attackFields(state: GameState, armyId: string): Map<string, { co
       }
       const cost = current.cost + movementCostOf(getField(nextId));
       if (cost <= army.movementPoints) {
-        queue.push({ id: nextId, cost });
+        queue.push({ id: nextId, cost, path: [...current.path, nextId] });
       }
     }
   }

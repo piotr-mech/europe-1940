@@ -111,8 +111,17 @@ export function BattlePopup({ state, report, onClose }: BattlePopupProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
       role="dialog"
       aria-label="Bitwa"
+      onClick={() => {
+        // Clicking the backdrop skips the rest of the playback (review F5).
+        onClose(report);
+      }}
     >
-      <div className="grid w-full max-w-md gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-xl">
+      <div
+        className="grid w-full max-w-md gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-xl"
+        onClick={(event) => {
+          event.stopPropagation(); // the card itself is not a skip target
+        }}
+      >
         <header>
           <h2 className="text-lg font-bold">Bitwa{field !== undefined ? ` o ${field.name}` : ""}</h2>
           <p className="text-xs text-slate-500">

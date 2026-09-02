@@ -79,9 +79,14 @@ describe("attackerStrength", () => {
     expect(result.modifiers).toContainEqual({ label: "Atak przez rzekę", amount: -3 });
   });
 
-  it("clamps a penalty-driven strength at 0", () => {
-    const result = attackerStrength(army("G", "germany", "poznan", ["infantry"]), field("bzura-river"));
-    expect(result.total).toBe(0); // 3 - 3
+  it("clamps a penalty-driven strength at 0 — boundary stays arithmetic-consistent (review F4)", () => {
+    // Min attack (infantry 3) meets max penalty (river 3): exactly 0, no
+    // balancing entry needed — base 3 − penalty 3 already sums to the total.
+    const boundary = attackerStrength(army("G", "germany", "poznan", ["infantry"]), field("bzura-river"));
+    expect(boundary.total).toBe(0);
+    expect(boundary.modifiers).toEqual([{ label: "Atak przez rzekę", amount: -3 }]);
+    // Below-zero totals (impossible with current data, defensive) would gain
+    // a balancing "Siła nie spada poniżej 0" entry so the report still adds up.
   });
 });
 
@@ -188,6 +193,49 @@ describe("resolveBattle", () => {
     expect(defender.units.length).toBe(3); // 1 loss off the end
     expect(report.attackerLosses).toBe(1);
     expect(next.fieldOwners["oder-plains"]).toBe("germany"); // ownership unchanged
+  });
+
+  it("defends with every army on the field; losses land on the last defender, clamped (review F6)", () => {
+    // Two defender armies (2 + 2 units, D 20 + Brest 3 = 23) vs 4 attacking
+    // infantry (A12): the defense always holds. Seed 6 draws a raw loss of 3,
+    // but only the last defender absorbs losses and keeps >= 1 unit.
+    const state = stateWithArmies([
+      army("G", "germany", "bug-river", Array<UnitTypeId>(4).fill("infantry")),
+      army("R1", "soviet", "brest", ["infantry", "infantry"]),
+      army("R2", "soviet", "brest", ["infantry", "infantry"]),
+    ]);
+    const { state: next, report } = resolveBattle(state, "G", "brest", 6);
+
+    expect(report.defenderArmyIds).toEqual(["R1", "R2"]);
+    expect(report.defenseStrength).toBe(23);
+    expect(report.attackerWins).toBe(false);
+    expect(hasArmy(next, "G")).toBe(false);
+    expect(findArmy(next, "R1").units.length).toBe(2); // first defender untouched
+    expect(findArmy(next, "R2").units.length).toBe(1); // last defender: raw draw 3 clamped to 1
+    expect(report.defenderLosses).toBe(1); // the applied (clamped) count, not the raw draw
+  });
+
+  it("flips the marched path on an attacker victory — one ownership rule with moves (review F1)", () => {
+    // German tanks in Minsk (speed 2) attack Soviet infantry in Brest through
+    // the Bialowieza forest: minsk -> bialowieza-forest -> brest.
+    const winning = stateWithArmies([
+      army("G", "germany", "minsk", ["tank", "tank", "tank", "tank"]),
+      army("R", "soviet", "brest", ["infantry"]),
+    ]);
+    const { state: next, report } = resolveBattle(winning, "G", "brest", 1);
+    expect(report.attackerWins).toBe(true);
+    expect(next.fieldOwners["bialowieza-forest"]).toBe("germany"); // marched through: flips
+    expect(next.fieldOwners.brest).toBe("germany"); // fought over: captured
+
+    // A defender victory flips nothing — the attacker died on the way.
+    const losing = stateWithArmies([
+      army("G", "germany", "minsk", ["tank", "tank"]),
+      army("R", "soviet", "brest", Array<UnitTypeId>(8).fill("infantry")),
+    ]);
+    const defended = resolveBattle(losing, "G", "brest", 1);
+    expect(defended.report.attackerWins).toBe(false);
+    expect(defended.state.fieldOwners["bialowieza-forest"]).toBe("soviet");
+    expect(defended.state.fieldOwners.brest).toBe("soviet");
   });
 
   it("captures a city: owner flips, queue cancelled, income flows to the winner next turn (FR-009)", () => {
