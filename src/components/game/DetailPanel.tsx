@@ -1,6 +1,7 @@
 import { getGameData } from "@/lib/game-data";
-import { dominantUnitType } from "@/lib/game-state";
+import { dominantUnitType, type GameAction } from "@/lib/game-state";
 import { armySpeed, movementCostOf } from "@/lib/movement";
+import { freeProductionSlots, unitCostFor } from "@/lib/production";
 import { UNIT_ICON } from "@/components/game/unit-icons";
 import type { Country, GameState, ResourceId, TerrainType, UnitTypeId } from "@/types";
 
@@ -13,6 +14,8 @@ export type SelectedSubject =
 interface DetailPanelProps {
   state: GameState;
   selected: SelectedSubject | null;
+  /** GameScreen owns the reducer; the ordering section dispatches through it. */
+  dispatch: React.Dispatch<GameAction>;
 }
 
 const TERRAIN_LABELS: Record<TerrainType, string> = {
@@ -22,7 +25,8 @@ const TERRAIN_LABELS: Record<TerrainType, string> = {
   river: "Rzeka",
 };
 
-const RESOURCE_LABELS: Record<ResourceId, string> = {
+/** Polish labels shared by the treasury HUD and the panel's income rows. */
+export const RESOURCE_LABELS: Record<ResourceId, string> = {
   money: "Pieniądze",
   steel: "Stal",
   recruits: "Rekruci",
@@ -50,7 +54,7 @@ function StatRow({ label, value }: { label: string; value: string }) {
  * Side panel with the selected subject's details (FR-006): city stats, terrain
  * effects, or army composition. Raw Tailwind, slate palette — no dependencies.
  */
-export function DetailPanel({ state, selected }: DetailPanelProps) {
+export function DetailPanel({ state, selected, dispatch }: DetailPanelProps) {
   const data = getGameData();
   const fieldById = new Map(data.fields.map((field) => [field.id, field]));
   const countryById = new Map(data.countries.map((country) => [country.id, country]));
@@ -129,17 +133,22 @@ export function DetailPanel({ state, selected }: DetailPanelProps) {
             </div>
           </header>
           {isCity && field.city !== null ? (
-            <dl className="grid gap-1 text-sm">
-              <StatRow label="Sloty produkcyjne" value={String(field.city.productionSlots)} />
-              <StatRow label="Bonus obrony" value={String(field.city.defenseBonus)} />
-              {(Object.keys(RESOURCE_LABELS) as ResourceId[]).map((resourceId) => (
-                <StatRow
-                  key={resourceId}
-                  label={`Dochód · ${RESOURCE_LABELS[resourceId]}`}
-                  value={String(field.city?.income[resourceId] ?? 0)}
-                />
-              ))}
-            </dl>
+            <>
+              <dl className="grid gap-1 text-sm">
+                <StatRow label="Sloty produkcyjne" value={String(field.city.productionSlots)} />
+                <StatRow label="Bonus obrony" value={String(field.city.defenseBonus)} />
+                {(Object.keys(RESOURCE_LABELS) as ResourceId[]).map((resourceId) => (
+                  <StatRow
+                    key={resourceId}
+                    label={`Dochód · ${RESOURCE_LABELS[resourceId]}`}
+                    value={String(field.city?.income[resourceId] ?? 0)}
+                  />
+                ))}
+              </dl>
+              {state.fieldOwners[field.id] === state.playerCountryId ? (
+                <ProductionSection state={state} fieldId={field.id} dispatch={dispatch} />
+              ) : null}
+            </>
           ) : terrain !== null ? (
             <dl className="grid gap-1 text-sm">
               <StatRow label="Koszt ruchu" value={String(movementCostOf(field))} />
@@ -162,5 +171,81 @@ export function DetailPanel({ state, selected }: DetailPanelProps) {
     <aside className="w-72 shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-4" aria-label="Panel szczegółów">
       {body}
     </aside>
+  );
+}
+
+interface ProductionSectionProps {
+  state: GameState;
+  fieldId: string;
+  dispatch: React.Dispatch<GameAction>;
+}
+
+/**
+ * Ordering + queue view for a city owned by the player (FR-003): unit types
+ * with cost (national bonuses via `unitCostFor`) and build time, plus the
+ * city's current queue. Buttons offer only legal orders — no slot or no
+ * treasury disables them; the reducer backstop covers the rest.
+ */
+function ProductionSection({ state, fieldId, dispatch }: ProductionSectionProps) {
+  const data = getGameData();
+  const unitTypeById = new Map(data.unitTypes.map((unitType) => [unitType.id, unitType]));
+  const countryId = state.playerCountryId;
+  const treasury = state.resources[countryId];
+  const freeSlots = freeProductionSlots(state, fieldId);
+  const queue = state.productionQueues[fieldId] ?? [];
+
+  return (
+    <section className="grid gap-2" aria-label="Produkcja">
+      <h3 className="text-sm font-semibold tracking-wide text-slate-500 uppercase">
+        Produkcja · wolne sloty: {freeSlots}
+      </h3>
+      <p className="text-xs text-slate-400">Koszt: pieniądze / stal / rekruci</p>
+      <ul className="grid gap-1.5 text-sm">
+        {data.unitTypes.map((unitType) => {
+          const cost = unitCostFor(countryId, unitType.id);
+          const affordable =
+            treasury.money >= cost.money && treasury.steel >= cost.steel && treasury.recruits >= cost.recruits;
+          return (
+            <li
+              key={unitType.id}
+              className="flex items-center gap-2.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5"
+            >
+              <img src={UNIT_ICON[unitType.id]} alt="" className="h-8 w-8 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="font-semibold">{unitType.name}</span>
+                <span className="block text-xs text-slate-500">
+                  Koszt {cost.money} / {cost.steel} / {cost.recruits} · Czas: {unitType.buildTime} t.
+                </span>
+              </span>
+              <button
+                type="button"
+                disabled={freeSlots === 0 || !affordable}
+                onClick={() => {
+                  dispatch({ type: "orderUnit", fieldId, unitTypeId: unitType.id });
+                }}
+                className="shrink-0 rounded-md bg-slate-800 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Zamów
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {queue.length > 0 ? (
+        <div className="grid gap-1 text-sm">
+          <h4 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Kolejka</h4>
+          <ol className="grid gap-1">
+            {queue.map((order, index) => (
+              <li key={`${order.typeId}-${index}`} className="flex items-baseline justify-between gap-2">
+                <span className="text-slate-700">
+                  {index + 1}. {unitTypeById.get(order.typeId)?.name ?? order.typeId}
+                </span>
+                <span className="text-xs text-slate-500">pozostało {order.remainingTurns} t.</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+    </section>
   );
 }

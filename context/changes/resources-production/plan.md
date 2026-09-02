@@ -299,18 +299,18 @@ Trivial at prototype scale: queue operations are O(units in city) on end turn; i
 
 #### Automated
 
-- [x] 2.1 Unit tests pass (`npm test`) — initial treasury + endTurn economy
-- [x] 2.2 Linting passes (`npm run lint`)
-- [x] 2.3 Build passes (`npm run build`)
+- [x] 2.1 Unit tests pass (`npm test`) — initial treasury + endTurn economy — 437ac4e
+- [x] 2.2 Linting passes (`npm run lint`) — 437ac4e
+- [x] 2.3 Build passes (`npm run build`) — 437ac4e
 
 ### Phase 3: UI — Resources HUD and Production Ordering
 
 #### Automated
 
-- [ ] 3.1 Unit tests pass (`npm test`) — orderUnit reducer coverage
-- [ ] 3.2 Linting passes (`npm run lint`)
-- [ ] 3.3 Build passes (`npm run build`)
+- [x] 3.1 Unit tests pass (`npm test`) — orderUnit reducer coverage
+- [x] 3.2 Linting passes (`npm run lint`)
+- [x] 3.3 Build passes (`npm run build`)
 
 #### Manual
 
-- [ ] 3.4 Manual flow on /game: treasury HUD, ordering in Berlin, completion into army, Rezerwy discount, slot limits, disabled buttons
+- [x] 3.4 Manual flow on /game: treasury HUD, ordering in Berlin, completion into army, Rezerwy discount, slot limits, disabled buttons

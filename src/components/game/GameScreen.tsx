@@ -1,12 +1,12 @@
 import { useReducer, useState } from "react";
 
 import { BoardMap } from "@/components/game/BoardMap";
-import { DetailPanel, type SelectedSubject } from "@/components/game/DetailPanel";
+import { DetailPanel, RESOURCE_LABELS, type SelectedSubject } from "@/components/game/DetailPanel";
 import { getGameData } from "@/lib/game-data";
 import { gameReducer } from "@/lib/game-state";
 import { reachableFields } from "@/lib/movement";
 import { cn } from "@/lib/utils";
-import type { Country, CountryId, GameState } from "@/types";
+import type { Country, CountryId, GameState, ResourceId } from "@/types";
 
 interface CountryOptionProps {
   country: Country;
@@ -158,6 +158,15 @@ export function GameScreen() {
           Tura {state.turn} · Grasz: {playerCountry?.name ?? state.playerCountryId} · AI:{" "}
           {aiCountry?.name ?? state.aiCountryId}
         </p>
+        {/* Treasury HUD (FR-002): the player's resources at all times. */}
+        <p className="text-sm font-semibold text-slate-700" aria-label="Skarbiec">
+          {(Object.keys(RESOURCE_LABELS) as ResourceId[]).map((resourceId, index) => (
+            <span key={resourceId}>
+              {index > 0 ? " · " : ""}
+              {RESOURCE_LABELS[resourceId]} {state.resources[state.playerCountryId][resourceId]}
+            </span>
+          ))}
+        </p>
         <button
           type="button"
           onClick={() => {
@@ -180,7 +189,7 @@ export function GameScreen() {
             onFieldClick={onFieldClick}
           />
         </div>
-        <DetailPanel state={state} selected={selectedSubject} />
+        <DetailPanel state={state} selected={selectedSubject} dispatch={dispatch} />
       </div>
     </main>
   );

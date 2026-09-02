@@ -1,7 +1,7 @@
 import { MAP_FIELDS } from "@/data/map";
 import { UNIT_TYPES } from "@/data/units";
 import { applyMove, armySpeed } from "@/lib/movement";
-import { advanceProduction, collectIncome } from "@/lib/production";
+import { advanceProduction, applyProductionOrder, collectIncome } from "@/lib/production";
 import type { Army, CountryId, GameState, ResourceBag, UnitInstance, UnitTypeId } from "@/types";
 
 /**
@@ -108,6 +108,7 @@ export function dominantUnitType(army: Army): UnitTypeId {
 export type GameAction =
   | { type: "startGame"; playerCountryId: CountryId; aiCountryId: CountryId }
   | { type: "moveArmy"; armyId: string; targetFieldId: string }
+  | { type: "orderUnit"; fieldId: string; unitTypeId: UnitTypeId }
   | { type: "endTurn" };
 
 /** Reducer for the GameScreen island; `null` state = setup screen. */
@@ -122,6 +123,17 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       } catch {
         // Illegal move (unreachable target, over-cap merge): leave the state
         // untouched — the UI only offers reachable targets, this is a backstop.
+        return state;
+      }
+    }
+    case "orderUnit": {
+      if (state === null) return state;
+      try {
+        return applyProductionOrder(state, state.playerCountryId, action.fieldId, action.unitTypeId);
+      } catch {
+        // Illegal order (not the player's city, no slot, cannot afford):
+        // leave the state untouched — the UI only offers legal options
+        // (disabled buttons), this is a backstop.
         return state;
       }
     }

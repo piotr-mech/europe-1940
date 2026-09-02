@@ -218,4 +218,30 @@ describe("gameReducer", () => {
     expect(r1?.units.length).toBe(5);
     expect(r1?.units.at(-1)?.typeId).toBe("infantry");
   });
+
+  it("orderUnit places the player's order: upfront deduction + queue append", () => {
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const next = gameReducer(state, { type: "orderUnit", fieldId: "berlin", unitTypeId: "infantry" });
+
+    const seeded = startingIncome("germany");
+    expect(next?.resources.germany).toEqual({
+      money: seeded.money - 20,
+      steel: seeded.steel,
+      recruits: seeded.recruits - 5,
+    });
+    expect(next?.productionQueues.berlin).toEqual([{ typeId: "infantry", remainingTurns: 1 }]);
+  });
+
+  it("orderUnit is a backstop: an illegal order returns the state unchanged", () => {
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+
+    // Not the player's city (Moscow belongs to the AI).
+    const foreign = gameReducer(state, { type: "orderUnit", fieldId: "moscow", unitTypeId: "infantry" });
+    expect(foreign).toBe(state);
+
+    // No free slot: Poznań has 1 slot, ordering twice must not throw.
+    const first = gameReducer(state, { type: "orderUnit", fieldId: "poznan", unitTypeId: "infantry" });
+    const second = gameReducer(first, { type: "orderUnit", fieldId: "poznan", unitTypeId: "infantry" });
+    expect(second).toBe(first);
+  });
 });
