@@ -1,6 +1,7 @@
 import { MAP_FIELDS } from "@/data/map";
 import { UNIT_TYPES } from "@/data/units";
 import { applyMove, armySpeed } from "@/lib/movement";
+import { advanceProduction, collectIncome } from "@/lib/production";
 import type { Army, CountryId, GameState, ResourceBag, UnitInstance, UnitTypeId } from "@/types";
 
 /**
@@ -64,21 +65,22 @@ export function createInitialGameState(playerCountryId: CountryId, aiCountryId: 
     return { ...army, movementPoints: armySpeed(army) };
   });
 
-  // Empty treasuries for now — Phase 2 (S-03) seeds turn-1 income here.
-  const resources: Record<CountryId, ResourceBag> = {
-    germany: { ...ZERO_RESOURCES },
-    soviet: { ...ZERO_RESOURCES },
-  };
-
-  return {
+  // "Zero + income at start of turn": a fresh game seeds each treasury with
+  // its turn-1 city income via the same collectIncome path endTurn uses, so
+  // the player can order on turn 1 — no hardcoded numbers.
+  const fresh: GameState = {
     turn: 1,
     playerCountryId,
     aiCountryId,
     fieldOwners,
     armies,
-    resources,
+    resources: {
+      germany: { ...ZERO_RESOURCES },
+      soviet: { ...ZERO_RESOURCES },
+    },
     productionQueues: {},
   };
+  return collectIncome(fresh);
 }
 
 /** The army's most common unit type; ties resolved by UNIT_TYPES order. */
@@ -123,13 +125,19 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
         return state;
       }
     }
-    case "endTurn":
-      return state === null
-        ? state
-        : {
-            ...state,
-            turn: state.turn + 1,
-            armies: state.armies.map((army) => ({ ...army, movementPoints: armySpeed(army) })),
-          };
+    case "endTurn": {
+      if (state === null) return state;
+      // Spec §20 ordering: Faza 1 zasoby → Faza 2 produkcja. Both countries
+      // run the economy (the AI accumulates income; its queues stay empty
+      // until S-06), then the turn rolls over and movement resets. Production
+      // runs on the current turn so new-army ids stay deterministic.
+      const withIncome = collectIncome(state);
+      const withProduction = advanceProduction(withIncome);
+      return {
+        ...withProduction,
+        turn: state.turn + 1,
+        armies: withProduction.armies.map((army) => ({ ...army, movementPoints: armySpeed(army) })),
+      };
+    }
   }
 }

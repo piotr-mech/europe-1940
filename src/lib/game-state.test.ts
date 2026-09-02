@@ -3,10 +3,25 @@ import { describe, expect, it } from "vitest";
 import { getGameData } from "@/lib/game-data";
 import { createInitialGameState, dominantUnitType, gameReducer } from "@/lib/game-state";
 import { armySpeed } from "@/lib/movement";
-import type { Army, CountryId } from "@/types";
+import { applyProductionOrder } from "@/lib/production";
+import type { Army, CountryId, ResourceBag } from "@/types";
 
 const gameData = getGameData();
 const COUNTRY_IDS: readonly CountryId[] = ["germany", "soviet"];
+
+/** Summed city income of the fields a country initially owns. */
+function startingIncome(countryId: CountryId): ResourceBag {
+  return gameData.fields
+    .filter((field) => field.initialOwner === countryId && field.city !== null)
+    .reduce<ResourceBag>(
+      (sum, field) => ({
+        money: sum.money + field.city.income.money,
+        steel: sum.steel + field.city.income.steel,
+        recruits: sum.recruits + field.city.income.recruits,
+      }),
+      { money: 0, steel: 0, recruits: 0 },
+    );
+}
 
 describe("createInitialGameState", () => {
   it("mirrors the dataset field owners", () => {
@@ -68,6 +83,18 @@ describe("createInitialGameState", () => {
 
   it("throws when both sides get the same country", () => {
     expect(() => createInitialGameState("germany", "germany")).toThrow("must differ");
+  });
+
+  it("seeds each treasury with its turn-1 city income (both player/AI assignments)", () => {
+    for (const [player, ai] of [
+      ["germany", "soviet"],
+      ["soviet", "germany"],
+    ] as const) {
+      const state = createInitialGameState(player, ai);
+      for (const countryId of COUNTRY_IDS) {
+        expect(state.resources[countryId]).toEqual(startingIncome(countryId));
+      }
+    }
   });
 });
 
@@ -139,5 +166,56 @@ describe("gameReducer", () => {
     for (const army of next?.armies ?? []) {
       expect(army.movementPoints).toBe(armySpeed(army));
     }
+  });
+
+  it("endTurn collects both countries' income on top of the seeded treasury", () => {
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const next = gameReducer(state, { type: "endTurn" });
+    for (const countryId of COUNTRY_IDS) {
+      const seeded = startingIncome(countryId);
+      expect(next?.resources[countryId]).toEqual({
+        money: seeded.money * 2,
+        steel: seeded.steel * 2,
+        recruits: seeded.recruits * 2,
+      });
+    }
+  });
+
+  it("an infantry order (buildTime 1) completes on one endTurn — unit on the map on turn N+1", () => {
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const ordered = applyProductionOrder(state, "germany", "berlin", "infantry");
+    const next = gameReducer(ordered, { type: "endTurn" });
+
+    expect(next?.turn).toBe(2);
+    // Queue emptied out and dropped from the record.
+    expect(next?.productionQueues.berlin).toBeUndefined();
+    // Berlin's standing german army G1 (4 units) received the 5th.
+    const g1 = next?.armies.find((army) => army.id === "G1");
+    expect(g1?.units.length).toBe(5);
+    expect(g1?.units.at(-1)?.typeId).toBe("infantry");
+  });
+
+  it("a tank order (buildTime 2) stays queued after one endTurn and completes on the second", () => {
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const ordered = applyProductionOrder(state, "germany", "berlin", "tank");
+    const turn2 = gameReducer(ordered, { type: "endTurn" });
+
+    expect(turn2?.productionQueues.berlin).toEqual([{ typeId: "tank", remainingTurns: 1 }]);
+    expect(turn2?.armies.find((army) => army.id === "G1")?.units.length).toBe(4);
+
+    const turn3 = gameReducer(turn2, { type: "endTurn" });
+    expect(turn3?.productionQueues.berlin).toBeUndefined();
+    expect(turn3?.armies.find((army) => army.id === "G1")?.units.at(-1)?.typeId).toBe("tank");
+  });
+
+  it("AI-country queues tick identically (soviet order under a german player)", () => {
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const ordered = applyProductionOrder(state, "soviet", "moscow", "infantry");
+    const next = gameReducer(ordered, { type: "endTurn" });
+
+    expect(next?.productionQueues.moscow).toBeUndefined();
+    const r1 = next?.armies.find((army) => army.id === "R1");
+    expect(r1?.units.length).toBe(5);
+    expect(r1?.units.at(-1)?.typeId).toBe("infantry");
   });
 });

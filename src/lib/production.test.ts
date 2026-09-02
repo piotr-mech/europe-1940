@@ -88,7 +88,8 @@ describe("collectIncome", () => {
   });
 
   it("counts only owned cities after ownership drifts from the dataset", () => {
-    const state = stateWith();
+    // Zero baseline — createInitialGameState now seeds turn-1 income (Phase 2).
+    const state = stateWith({ resources: { germany: bag(0, 0, 0), soviet: bag(0, 0, 0) } });
     const flipped = { ...state, fieldOwners: { ...state.fieldOwners, moscow: "germany" } };
     const next = collectIncome(flipped);
 
@@ -101,9 +102,9 @@ describe("collectIncome", () => {
   });
 
   it("does not mutate the input state", () => {
-    const state = stateWith();
+    const state = stateWith({ resources: { germany: bag(10, 5, 2), soviet: bag(0, 0, 0) } });
     collectIncome(state);
-    expect(state.resources.germany).toEqual(bag(0, 0, 0));
+    expect(state.resources.germany).toEqual(bag(10, 5, 2));
   });
 });
 

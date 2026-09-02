@@ -291,17 +291,17 @@ Trivial at prototype scale: queue operations are O(units in city) on end turn; i
 
 #### Automated
 
-- [x] 1.1 Unit tests pass (`npm test`) — production rule matrix
-- [x] 1.2 Linting passes (`npm run lint`)
-- [x] 1.3 Build passes (`npm run build`)
+- [x] 1.1 Unit tests pass (`npm test`) — production rule matrix — 324cbf0
+- [x] 1.2 Linting passes (`npm run lint`) — 324cbf0
+- [x] 1.3 Build passes (`npm run build`) — 324cbf0
 
 ### Phase 2: Turn Cycle — Income Seeding and endTurn
 
 #### Automated
 
-- [ ] 2.1 Unit tests pass (`npm test`) — initial treasury + endTurn economy
-- [ ] 2.2 Linting passes (`npm run lint`)
-- [ ] 2.3 Build passes (`npm run build`)
+- [x] 2.1 Unit tests pass (`npm test`) — initial treasury + endTurn economy
+- [x] 2.2 Linting passes (`npm run lint`)
+- [x] 2.3 Build passes (`npm run build`)
 
 ### Phase 3: UI — Resources HUD and Production Ordering
 
