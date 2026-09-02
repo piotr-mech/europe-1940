@@ -307,10 +307,10 @@ Trivial at prototype scale: queue operations are O(units in city) on end turn; i
 
 #### Automated
 
-- [x] 3.1 Unit tests pass (`npm test`) — orderUnit reducer coverage
-- [x] 3.2 Linting passes (`npm run lint`)
-- [x] 3.3 Build passes (`npm run build`)
+- [x] 3.1 Unit tests pass (`npm test`) — orderUnit reducer coverage — 3276a4a
+- [x] 3.2 Linting passes (`npm run lint`) — 3276a4a
+- [x] 3.3 Build passes (`npm run build`) — 3276a4a
 
 #### Manual
 
-- [x] 3.4 Manual flow on /game: treasury HUD, ordering in Berlin, completion into army, Rezerwy discount, slot limits, disabled buttons
+- [x] 3.4 Manual flow on /game: treasury HUD, ordering in Berlin, completion into army, Rezerwy discount, slot limits, disabled buttons — 3276a4a
