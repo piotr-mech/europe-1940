@@ -1,10 +1,10 @@
 ---
 change_id: battle-city-capture
 title: Automatic battle and city capture
-status: impl_reviewed
+status: archived
 created: 2026-09-02
 updated: 2026-09-02
-archived_at: null
+archived_at: 2026-09-02T21:18:46Z
 ---
 
 ## Notes
