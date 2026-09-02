@@ -141,7 +141,7 @@ export function DetailPanel({ state, selected, dispatch }: DetailPanelProps) {
                   <StatRow
                     key={resourceId}
                     label={`Dochód · ${RESOURCE_LABELS[resourceId]}`}
-                    value={String(field.city?.income[resourceId] ?? 0)}
+                    value={String(field.city.income[resourceId])}
                   />
                 ))}
               </dl>

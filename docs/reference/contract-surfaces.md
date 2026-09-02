@@ -14,8 +14,8 @@ anything listed here is a breaking change — check consumers before touching it
 | `Country` / `CountryId` (`src/types.ts`) | type | Country shape + literal union | S-01 (country choice), all ownership logic |
 | `TerrainStats` / `TerrainType` (`src/types.ts`) | type | Terrain effects + literal union | S-02 (movement cost), S-04 (combat modifiers) |
 | `ResourceBag` / `ResourceId` (`src/types.ts`) | type | money/steel/recruits amounts | S-03 (income/production) |
-| `MAP_FIELDS` (`src/data/map.ts`) | data | 29-field prototype map graph (readonly, `as const satisfies`) | Via `buildGameData()` only |
-| `UNIT_TYPES` (`src/data/units.ts`) | data | 4 unit types with draft stats | Via `buildGameData()` only |
+| `MAP_FIELDS` (`src/data/map.ts`) | data | 29-field prototype map graph (readonly, `as const satisfies`) | `buildGameData()`, `movement.ts`, `game-state.ts`, `production.ts` (engine modules + test suites import directly) |
+| `UNIT_TYPES` (`src/data/units.ts`) | data | 4 unit types with draft stats | `buildGameData()`, `game-state.ts`, `production.ts` (engine modules + test suites import directly) |
 | `COUNTRIES` (`src/data/countries.ts`) | data | Germany + USSR with colors and national bonuses | Via `buildGameData()` only |
 | `TERRAIN` (`src/data/terrain.ts`) | data | Terrain effects for plains/forest/mountains/river | Via `buildGameData()` only |
 | `armySpeed(army)` (`src/lib/movement.ts`) | function | Army pace = slowest unit's movement (FR-005); throws on empty army | `createInitialGameState`, `endTurn` reset, S-04 (battle), S-05 (supply penalty) |

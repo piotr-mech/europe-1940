@@ -111,6 +111,11 @@ export type GameAction =
   | { type: "orderUnit"; fieldId: string; unitTypeId: UnitTypeId }
   | { type: "endTurn" };
 
+/** Rethrows developer errors (mistyped import, undefined access) — the backstop masks only domain-rule throws. */
+function isDomainError(error: unknown): boolean {
+  return !(error instanceof ReferenceError || error instanceof TypeError || error instanceof SyntaxError);
+}
+
 /** Reducer for the GameScreen island; `null` state = setup screen. */
 export function gameReducer(state: GameState | null, action: GameAction): GameState | null {
   switch (action.type) {
@@ -120,21 +125,24 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       if (state === null) return state;
       try {
         return applyMove(state, action.armyId, action.targetFieldId);
-      } catch {
+      } catch (error) {
         // Illegal move (unreachable target, over-cap merge): leave the state
         // untouched — the UI only offers reachable targets, this is a backstop.
-        return state;
+        // Developer errors still propagate (lesson: bare-catch masks them).
+        if (isDomainError(error)) return state;
+        throw error;
       }
     }
     case "orderUnit": {
       if (state === null) return state;
       try {
         return applyProductionOrder(state, state.playerCountryId, action.fieldId, action.unitTypeId);
-      } catch {
+      } catch (error) {
         // Illegal order (not the player's city, no slot, cannot afford):
         // leave the state untouched — the UI only offers legal options
-        // (disabled buttons), this is a backstop.
-        return state;
+        // (disabled buttons), this is a backstop. Developer errors propagate.
+        if (isDomainError(error)) return state;
+        throw error;
       }
     }
     case "endTurn": {
