@@ -11,7 +11,7 @@ import { MAP_FIELDS } from "@/data/map";
 import { TERRAIN } from "@/data/terrain";
 import { UNIT_TYPES } from "@/data/units";
 import { attackFields } from "@/lib/movement";
-import type { Army, GameState, MapField, UnitType, UnitTypeId } from "@/types";
+import type { Army, BattleModifier, BattleReport, GameState, MapField, UnitType, UnitTypeId } from "@/types";
 
 /** Each side's strength is scaled by a uniform roll within ±this band around 1 (US-01: small random element). Draft balance value. */
 const ROLL_SPREAD = 0.2;
@@ -45,30 +45,6 @@ export function rngStep(seed: number): { value: number; nextSeed: number } {
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   const value = ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
   return { value, nextSeed: t | 0 };
-}
-
-/** One line of the battle report's "why" (NFR: no unexplainable outcomes). */
-export interface BattleModifier {
-  /** Polish display label, e.g. "Artyleria (wsparcie)". */
-  label: string;
-  /** Signed change to the side's strength. */
-  amount: number;
-}
-
-/** Everything the UI panel shows after a battle. */
-export interface BattleReport {
-  attackerArmyId: string;
-  defenderArmyIds: string[];
-  fieldId: string;
-  attackerWins: boolean;
-  /** Units destroyed on each side (FR-008: the loser loses all). */
-  attackerLosses: number;
-  defenderLosses: number;
-  /** Modified strengths before the random roll. */
-  attackStrength: number;
-  defenseStrength: number;
-  attackModifiers: BattleModifier[];
-  defenseModifiers: BattleModifier[];
 }
 
 export interface BattleResult {

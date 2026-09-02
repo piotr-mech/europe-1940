@@ -248,17 +248,17 @@ Map is 29 fields, armies ≤ 8 units; battle resolution is O(units) arithmetic o
 
 #### Automated
 
-- [x] 1.1 `npm test` — battle suite green (strength math per modifier, seeded outcomes incl. an upset win, loss draw bounds/clamp, loser removal, capture + queue cancel, free capture, attack-target terminals)
-- [x] 1.2 `npm run lint`
-- [x] 1.3 `npm run build`
+- [x] 1.1 `npm test` — battle suite green (strength math per modifier, seeded outcomes incl. an upset win, loss draw bounds/clamp, loser removal, capture + queue cancel, free capture, attack-target terminals) — fa2c865
+- [x] 1.2 `npm run lint` — fa2c865
+- [x] 1.3 `npm run build` — fa2c865
 
 ### Phase 2: Reducer and state wiring
 
 #### Automated
 
-- [ ] 2.1 `npm test` — reducer attackArmy suite green (seed advance, report stored, illegal attack unchanged, dev errors propagate)
-- [ ] 2.2 `npm run lint`
-- [ ] 2.3 `npm run build`
+- [x] 2.1 `npm test` — reducer attackArmy suite green (seed advance, report stored, illegal attack unchanged, dev errors propagate)
+- [x] 2.2 `npm run lint`
+- [x] 2.3 `npm run build`
 
 ### Phase 3: Attack UX and battle report
 

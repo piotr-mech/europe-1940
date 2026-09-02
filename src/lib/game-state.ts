@@ -1,5 +1,6 @@
 import { MAP_FIELDS } from "@/data/map";
 import { UNIT_TYPES } from "@/data/units";
+import { resolveBattle } from "@/lib/battle";
 import { applyMove, armySpeed } from "@/lib/movement";
 import { advanceProduction, applyProductionOrder, collectIncome } from "@/lib/production";
 import type { Army, CountryId, GameState, ResourceBag, UnitInstance, UnitTypeId } from "@/types";
@@ -45,8 +46,12 @@ const INITIAL_ARMIES: readonly ArmyDraft[] = [
 
 const ZERO_RESOURCES: ResourceBag = { money: 0, steel: 0, recruits: 0 };
 
-/** Builds a fresh campaign: owners from the dataset, turn 1, draft armies. */
-export function createInitialGameState(playerCountryId: CountryId, aiCountryId: CountryId): GameState {
+/**
+ * Builds a fresh campaign: owners from the dataset, turn 1, draft armies.
+ * `rngSeed` seeds the battle PRNG (S-04); the default 1 keeps direct test
+ * calls deterministic — the reducer always passes the UI-supplied seed.
+ */
+export function createInitialGameState(playerCountryId: CountryId, aiCountryId: CountryId, rngSeed = 1): GameState {
   if (playerCountryId === aiCountryId) {
     throw new Error(`player and AI country must differ, got "${playerCountryId}" for both`);
   }
@@ -79,6 +84,8 @@ export function createInitialGameState(playerCountryId: CountryId, aiCountryId: 
       soviet: { ...ZERO_RESOURCES },
     },
     productionQueues: {},
+    rngSeed,
+    lastBattleReport: null,
   };
   return collectIncome(fresh);
 }
@@ -106,8 +113,9 @@ export function dominantUnitType(army: Army): UnitTypeId {
 }
 
 export type GameAction =
-  | { type: "startGame"; playerCountryId: CountryId; aiCountryId: CountryId }
+  | { type: "startGame"; playerCountryId: CountryId; aiCountryId: CountryId; seed: number }
   | { type: "moveArmy"; armyId: string; targetFieldId: string }
+  | { type: "attackArmy"; armyId: string; targetFieldId: string }
   | { type: "orderUnit"; fieldId: string; unitTypeId: UnitTypeId }
   | { type: "endTurn" };
 
@@ -120,7 +128,7 @@ function isDomainError(error: unknown): boolean {
 export function gameReducer(state: GameState | null, action: GameAction): GameState | null {
   switch (action.type) {
     case "startGame":
-      return createInitialGameState(action.playerCountryId, action.aiCountryId);
+      return createInitialGameState(action.playerCountryId, action.aiCountryId, action.seed);
     case "moveArmy": {
       if (state === null) return state;
       try {
@@ -129,6 +137,25 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
         // Illegal move (unreachable target, over-cap merge): leave the state
         // untouched — the UI only offers reachable targets, this is a backstop.
         // Developer errors still propagate (lesson: bare-catch masks them).
+        if (isDomainError(error)) return state;
+        throw error;
+      }
+    }
+    case "attackArmy": {
+      if (state === null) return state;
+      try {
+        // The battle consumes the stored PRNG seed and writes back the
+        // advanced one plus the report (S-04: the panel renders it).
+        const {
+          state: afterBattle,
+          report,
+          nextSeed,
+        } = resolveBattle(state, action.armyId, action.targetFieldId, state.rngSeed);
+        return { ...afterBattle, rngSeed: nextSeed, lastBattleReport: report };
+      } catch (error) {
+        // Illegal attack (no enemy army on the field, out of reach): leave the
+        // state untouched — the UI only offers attack targets, this is a
+        // backstop. Developer errors still propagate (lesson: bare-catch masks them).
         if (isDomainError(error)) return state;
         throw error;
       }

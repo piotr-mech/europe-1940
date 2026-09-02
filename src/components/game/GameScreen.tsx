@@ -100,7 +100,9 @@ export function GameScreen() {
         <button
           type="button"
           onClick={() => {
-            dispatch({ type: "startGame", playerCountryId, aiCountryId });
+            // The battle PRNG seed comes from the UI (Date.now) so each
+            // campaign rolls differently while the reducer stays pure (S-04).
+            dispatch({ type: "startGame", playerCountryId, aiCountryId, seed: Date.now() });
           }}
           className="w-full rounded-lg bg-slate-800 px-4 py-3 font-semibold text-white transition-colors hover:bg-slate-700"
         >

@@ -94,6 +94,32 @@ export interface GameData {
   fields: readonly MapField[];
 }
 
+// --- Battle (S-04) ---
+
+/** One line of the battle report's "why" (NFR: no unexplainable outcomes). */
+export interface BattleModifier {
+  /** Polish display label, e.g. "Artyleria (wsparcie)". */
+  label: string;
+  /** Signed change to the side's strength. */
+  amount: number;
+}
+
+/** Everything the UI panel shows after a battle (S-04, FR-007). */
+export interface BattleReport {
+  attackerArmyId: string;
+  defenderArmyIds: string[];
+  fieldId: string;
+  attackerWins: boolean;
+  /** Units destroyed on each side (FR-008: the loser loses all). */
+  attackerLosses: number;
+  defenderLosses: number;
+  /** Modified strengths before the random roll. */
+  attackStrength: number;
+  defenseStrength: number;
+  attackModifiers: BattleModifier[];
+  defenseModifiers: BattleModifier[];
+}
+
 // --- Runtime game state (S-01; persisted client-side from S-08) ---
 
 /** A concrete unit in an army; stats come from its UnitType. */
@@ -128,4 +154,8 @@ export interface GameState {
   resources: Record<CountryId, ResourceBag>;
   /** fieldId -> queued builds (S-03, FR-003); absent key = empty queue. */
   productionQueues: Record<string, ProductionOrder[]>;
+  /** PRNG seed for the next battle (S-04); advanced by every resolveBattle call. */
+  rngSeed: number;
+  /** The most recent battle's report (S-04); null until the first battle. */
+  lastBattleReport: BattleReport | null;
 }

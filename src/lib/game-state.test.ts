@@ -136,20 +136,25 @@ describe("dominantUnitType", () => {
 
 describe("gameReducer", () => {
   it("startGame replaces null state with a fresh game for the chosen pairing", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "soviet", aiCountryId: "germany" });
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "soviet", aiCountryId: "germany", seed: 1 });
     expect(state?.playerCountryId).toBe("soviet");
     expect(state?.aiCountryId).toBe("germany");
     expect(state?.turn).toBe(1);
   });
 
   it("startGame on an existing state restarts the campaign", () => {
-    const first = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
-    const second = gameReducer(first, { type: "startGame", playerCountryId: "soviet", aiCountryId: "germany" });
+    const first = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const second = gameReducer(first, {
+      type: "startGame",
+      playerCountryId: "soviet",
+      aiCountryId: "germany",
+      seed: 1,
+    });
     expect(second?.playerCountryId).toBe("soviet");
   });
 
   it("moveArmy moves the army and spends its movement points", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     // G2 stands in Warsaw (speed 1); Radom Plains is a 1-cost neighbor.
     const next = gameReducer(state, { type: "moveArmy", armyId: "G2", targetFieldId: "radom-plains" });
     const moved = next?.armies.find((army) => army.id === "G2");
@@ -158,7 +163,7 @@ describe("gameReducer", () => {
   });
 
   it("endTurn advances the turn and restores every army's movement", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const moved = gameReducer(state, { type: "moveArmy", armyId: "G2", targetFieldId: "radom-plains" });
     const next = gameReducer(moved, { type: "endTurn" });
 
@@ -169,7 +174,7 @@ describe("gameReducer", () => {
   });
 
   it("endTurn collects both countries' income on top of the seeded treasury", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const next = gameReducer(state, { type: "endTurn" });
     for (const countryId of COUNTRY_IDS) {
       const seeded = startingIncome(countryId);
@@ -182,7 +187,7 @@ describe("gameReducer", () => {
   });
 
   it("an infantry order (buildTime 1) completes on one endTurn — unit on the map on turn N+1", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const ordered = applyProductionOrder(state, "germany", "berlin", "infantry");
     const next = gameReducer(ordered, { type: "endTurn" });
 
@@ -196,7 +201,7 @@ describe("gameReducer", () => {
   });
 
   it("a tank order (buildTime 2) stays queued after one endTurn and completes on the second", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const ordered = applyProductionOrder(state, "germany", "berlin", "tank");
     const turn2 = gameReducer(ordered, { type: "endTurn" });
 
@@ -209,7 +214,7 @@ describe("gameReducer", () => {
   });
 
   it("AI-country queues tick identically (soviet order under a german player)", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const ordered = applyProductionOrder(state, "soviet", "moscow", "infantry");
     const next = gameReducer(ordered, { type: "endTurn" });
 
@@ -220,7 +225,7 @@ describe("gameReducer", () => {
   });
 
   it("orderUnit places the player's order: upfront deduction + queue append", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const next = gameReducer(state, { type: "orderUnit", fieldId: "berlin", unitTypeId: "infantry" });
 
     const seeded = startingIncome("germany");
@@ -233,7 +238,7 @@ describe("gameReducer", () => {
   });
 
   it("orderUnit is a backstop: an illegal order returns the state unchanged", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet" });
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
 
     // Not the player's city (Moscow belongs to the AI).
     const foreign = gameReducer(state, { type: "orderUnit", fieldId: "moscow", unitTypeId: "infantry" });
@@ -243,5 +248,81 @@ describe("gameReducer", () => {
     const first = gameReducer(state, { type: "orderUnit", fieldId: "poznan", unitTypeId: "infantry" });
     const second = gameReducer(first, { type: "orderUnit", fieldId: "poznan", unitTypeId: "infantry" });
     expect(second).toBe(first);
+  });
+
+  it("attackArmy resolves the battle: state advances, seed advances, report stored, city captured", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // German tank army on the Bug river attacks one Soviet infantry in Brest.
+    const armies = [
+      {
+        id: "G1",
+        owner: "germany" as const,
+        fieldId: "bug-river",
+        units: Array.from({ length: 8 }, (_, index) => ({ id: `G1-u${index + 1}`, typeId: "tank" as const })),
+        movementPoints: 2,
+      },
+      {
+        id: "R1",
+        owner: "soviet" as const,
+        fieldId: "brest",
+        units: [{ id: "R1-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+    ];
+    const state = { ...base, armies, rngSeed: 1, lastBattleReport: null };
+
+    const next = gameReducer(state, { type: "attackArmy", armyId: "G1", targetFieldId: "brest" });
+
+    expect(next?.fieldOwners.brest).toBe("germany"); // captured (FR-009)
+    expect(next?.armies.some((army) => army.id === "R1")).toBe(false); // defender destroyed
+    expect(next?.lastBattleReport?.attackerWins).toBe(true);
+    expect(next?.lastBattleReport?.fieldId).toBe("brest");
+    expect(next?.rngSeed).not.toBe(1); // the PRNG advanced
+  });
+
+  it("attackArmy is a backstop: illegal attacks return the state unchanged", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const armies = [
+      {
+        id: "G1",
+        owner: "germany" as const,
+        fieldId: "bug-river",
+        units: [{ id: "G1-u1", typeId: "tank" as const }],
+        movementPoints: 2,
+      },
+      {
+        id: "R1",
+        owner: "soviet" as const,
+        fieldId: "brest",
+        units: [{ id: "R1-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+    ];
+    const state = { ...base, armies, rngSeed: 1, lastBattleReport: null };
+
+    // No enemy army on the field (Radom Plains is empty): that path is a move.
+    expect(gameReducer(state, { type: "attackArmy", armyId: "G1", targetFieldId: "radom-plains" })).toBe(state);
+    // Out of reach: Moscow is far beyond the Bug river.
+    expect(gameReducer(state, { type: "attackArmy", armyId: "G1", targetFieldId: "moscow" })).toBe(state);
+    // Unknown army.
+    expect(gameReducer(state, { type: "attackArmy", armyId: "nope", targetFieldId: "brest" })).toBe(state);
+  });
+
+  it("attackArmy propagates developer errors (lesson: bare catch masks them)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // Corrupted army (units: null) — attackerStrength's for..of throws TypeError,
+    // which the backstop must NOT swallow.
+    const armies = [
+      { id: "G1", owner: "germany" as const, fieldId: "bug-river", units: null, movementPoints: 2 },
+      {
+        id: "R1",
+        owner: "soviet" as const,
+        fieldId: "brest",
+        units: [{ id: "R1-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+    ];
+    const state = { ...base, armies, rngSeed: 1, lastBattleReport: null };
+    expect(() => gameReducer(state, { type: "attackArmy", armyId: "G1", targetFieldId: "brest" })).toThrow();
   });
 });
