@@ -11,7 +11,17 @@ import { MAP_FIELDS } from "@/data/map";
 import { TERRAIN } from "@/data/terrain";
 import { UNIT_TYPES } from "@/data/units";
 import { attackFields } from "@/lib/movement";
-import type { Army, BattleModifier, BattleReport, GameState, MapField, UnitType, UnitTypeId } from "@/types";
+import type {
+  Army,
+  BattleDeath,
+  BattleModifier,
+  BattleReport,
+  GameState,
+  MapField,
+  UnitInstance,
+  UnitType,
+  UnitTypeId,
+} from "@/types";
 
 /** Each side's strength is scaled by a uniform roll within ±this band around 1 (US-01: small random element). Draft balance value. */
 const ROLL_SPREAD = 0.2;
@@ -158,6 +168,7 @@ export function resolveBattle(state: GameState, armyId: string, targetFieldId: s
   const ratio = winnerStrength > 0 ? loserStrength / winnerStrength : 1;
   const cap = Math.min(Math.ceil(ratio * winnerUnits), winnerUnits - 1);
   const winnerLosses = Math.floor(rollL.value * (cap + 1));
+  const defenderUnits = defenders.flatMap((defender) => defender.units);
 
   if (attackerWins) {
     // Defenders are destroyed; the attacker enters the field and stops (S-04
@@ -181,6 +192,7 @@ export function resolveBattle(state: GameState, armyId: string, targetFieldId: s
     const productionQueues = Object.fromEntries(
       Object.entries(state.productionQueues).filter(([fieldId]) => fieldId !== targetFieldId),
     );
+    const defenderLosses = defenders.reduce((sum, defender) => sum + defender.units.length, 0);
     const report: BattleReport = {
       attackerArmyId: army.id,
       attackerOwner: army.owner,
@@ -188,11 +200,14 @@ export function resolveBattle(state: GameState, armyId: string, targetFieldId: s
       fieldId: targetFieldId,
       attackerWins: true,
       attackerLosses: winnerLosses,
-      defenderLosses: defenders.reduce((sum, defender) => sum + defender.units.length, 0),
+      defenderLosses,
       attackStrength: attack.total,
       defenseStrength: defense.total,
       attackModifiers: attack.modifiers,
       defenseModifiers: defense.modifiers,
+      attackerComposition: army.units.map((unit) => unit.typeId),
+      defenderComposition: defenders.flatMap((defender) => defender.units.map((unit) => unit.typeId)),
+      deathLog: buildDeathLog(army.units, defenderUnits, winnerLosses, defenderLosses),
     };
     return { state: { ...state, armies, fieldOwners, productionQueues }, report, nextSeed: rollL.nextSeed };
   }
@@ -224,6 +239,52 @@ export function resolveBattle(state: GameState, armyId: string, targetFieldId: s
     defenseStrength: defense.total,
     attackModifiers: attack.modifiers,
     defenseModifiers: defense.modifiers,
+    attackerComposition: army.units.map((unit) => unit.typeId),
+    defenderComposition: defenders.flatMap((defender) => defender.units.map((unit) => unit.typeId)),
+    deathLog: buildDeathLog(army.units, defenderUnits, army.units.length, appliedLosses),
   };
   return { state: { ...state, armies }, report, nextSeed: rollL.nextSeed };
+}
+
+/**
+ * Ordered deaths for the popup's staged reveal (S-04): sides alternate —
+ * starting with the heavier-losing side, skipping exhausted sides — and
+ * within a side units die in engine removal order (end of the array first).
+ */
+function buildDeathLog(
+  attackerUnits: UnitInstance[],
+  defenderUnits: UnitInstance[],
+  attackerLosses: number,
+  defenderLosses: number,
+): BattleDeath[] {
+  const attackerDeaths = attackerUnits
+    .slice(attackerUnits.length - attackerLosses)
+    .reverse()
+    .map((unit) => ({ side: "attacker" as const, unitTypeId: unit.typeId }));
+  const defenderDeaths = defenderUnits
+    .slice(defenderUnits.length - defenderLosses)
+    .reverse()
+    .map((unit) => ({ side: "defender" as const, unitTypeId: unit.typeId }));
+
+  const log: BattleDeath[] = [];
+  let attackerIndex = 0;
+  let defenderIndex = 0;
+  let attackerTurn = attackerDeaths.length >= defenderDeaths.length;
+  while (attackerIndex < attackerDeaths.length || defenderIndex < defenderDeaths.length) {
+    if (attackerTurn && attackerIndex < attackerDeaths.length) {
+      log.push(attackerDeaths[attackerIndex]);
+      attackerIndex += 1;
+    } else if (!attackerTurn && defenderIndex < defenderDeaths.length) {
+      log.push(defenderDeaths[defenderIndex]);
+      defenderIndex += 1;
+    } else if (attackerIndex < attackerDeaths.length) {
+      log.push(attackerDeaths[attackerIndex]);
+      attackerIndex += 1;
+    } else {
+      log.push(defenderDeaths[defenderIndex]);
+      defenderIndex += 1;
+    }
+    attackerTurn = !attackerTurn;
+  }
+  return log;
 }

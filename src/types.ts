@@ -104,6 +104,12 @@ export interface BattleModifier {
   amount: number;
 }
 
+/** One staged unit death for the battle popup's 1-second reveal (S-04). */
+export interface BattleDeath {
+  side: "attacker" | "defender";
+  unitTypeId: UnitTypeId;
+}
+
 /** Everything the UI panel shows after a battle (S-04, FR-007). */
 export interface BattleReport {
   attackerArmyId: string;
@@ -120,6 +126,11 @@ export interface BattleReport {
   defenseStrength: number;
   attackModifiers: BattleModifier[];
   defenseModifiers: BattleModifier[];
+  /** Pre-battle unit types per side — the popup renders these and strikes deaths out. */
+  attackerComposition: UnitTypeId[];
+  defenderComposition: UnitTypeId[];
+  /** Ordered deaths for the staged popup reveal; alternates sides, end-of-array first. */
+  deathLog: BattleDeath[];
 }
 
 // --- Runtime game state (S-01; persisted client-side from S-08) ---

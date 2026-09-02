@@ -244,3 +244,64 @@ describe("resolveBattle", () => {
     expect(attackFields(state, "G").has("carpathians-mountains")).toBe(false);
   });
 });
+
+describe("deathLog (staged popup reveal)", () => {
+  it("alternates sides starting with the heavier-losing side; counts match losses (seed 6)", () => {
+    // Upset scenario: attacker 6 infantry (losses 5) vs defender 4 infantry (losses 4).
+    const state = stateWithArmies([
+      army("G", "germany", "berlin", Array<UnitTypeId>(6).fill("infantry")),
+      army("R", "soviet", "oder-plains", Array<UnitTypeId>(4).fill("infantry")),
+    ]);
+    const { report } = resolveBattle(state, "G", "oder-plains", 6);
+
+    expect(report.attackerLosses).toBe(5);
+    expect(report.defenderLosses).toBe(4);
+    expect(report.deathLog).toHaveLength(9);
+    expect(report.deathLog.map((death) => death.side)).toEqual([
+      "attacker",
+      "defender",
+      "attacker",
+      "defender",
+      "attacker",
+      "defender",
+      "attacker",
+      "defender",
+      "attacker",
+    ]);
+    for (const death of report.deathLog) {
+      expect(death.unitTypeId).toBe("infantry");
+    }
+  });
+
+  it("kills within a side from the end of the unit array, matching engine removal", () => {
+    // Attacker [tank, tank, inf, inf] (A20) vs 2 infantry in the forest (D12),
+    // seed 6: attacker wins with 3 losses — the infantry die before the tank.
+    const state = stateWithArmies([
+      army("G", "germany", "minsk", ["tank", "tank", "infantry", "infantry"]),
+      army("R", "soviet", "bialowieza-forest", ["infantry", "infantry"]),
+    ]);
+    const { report, state: next } = resolveBattle(state, "G", "bialowieza-forest", 6);
+
+    expect(report.attackerWins).toBe(true);
+    expect(report.attackerLosses).toBe(3);
+    // Engine removal order: end of the array first — inf, inf, tank.
+    expect(report.deathLog.filter((death) => death.side === "attacker").map((death) => death.unitTypeId)).toEqual([
+      "infantry",
+      "infantry",
+      "tank",
+    ]);
+    expect(findArmy(next, "G").units.map((unit) => unit.id)).toEqual(["u1"]); // the lead tank survives
+  });
+
+  it("carries pre-battle compositions for both sides", () => {
+    const state = stateWithArmies([
+      army("G", "germany", "berlin", ["tank", "tank", "tank", "tank", "tank", "tank", "tank", "tank"]),
+      army("R", "soviet", "oder-plains", ["infantry", "antiTank"]),
+    ]);
+    const { report } = resolveBattle(state, "G", "oder-plains", 1);
+    expect(report.attackerComposition).toEqual(Array<UnitTypeId>(8).fill("tank"));
+    expect(report.defenderComposition).toEqual(["infantry", "antiTank"]);
+    expect(report.deathLog).toHaveLength(2); // 0 attacker + 2 defender deaths
+    expect(report.deathLog.every((death) => death.side === "defender")).toBe(true);
+  });
+});

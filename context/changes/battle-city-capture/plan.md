@@ -204,6 +204,58 @@ The player-facing half: attack targets on the map, click-to-attack, and the batt
 
 ---
 
+## Phase 4: Battle popup (staged reveal)
+
+> User-requested extension after the Phase 3 manual gate: the battle plays out
+> in a popup — every second one unit death resolves until the battle ends, then
+> the popup disappears. The side-panel report (Phase 3) stays as the recap.
+
+### Overview
+
+The battle outcome stays resolved atomically by the engine (reducer purity, deterministic tests); the popup *plays back* the computed outcome — a death log produced by the engine drives a 1-second-tick reveal in a modal, which closes itself after the final death.
+
+### Changes Required:
+
+#### 1. Death log in the battle engine
+
+**File**: `src/types.ts`, `src/lib/battle.ts`, `src/lib/battle.test.ts`
+
+**Intent**: Give the popup an ordered, deterministic sequence of deaths plus the pre-battle compositions to render — decided once in the engine, not improvised in the UI.
+
+**Contract**: `BattleReport` gains `attackerComposition`/`defenderComposition` (pre-battle unit types) and `deathLog: BattleDeath[]` where `BattleDeath = { side: "attacker" | "defender"; unitTypeId: UnitTypeId }`. Deaths alternate sides (starting with the side that lost more units, skipping exhausted sides); within a side they follow engine removal order (end of the unit array first). Total per side equals the report's loss counts.
+
+#### 2. BattlePopup component
+
+**File**: `src/components/game/BattlePopup.tsx` (new)
+
+**Intent**: The live battle stage — a modal overlay so the map cannot be clicked mid-battle.
+
+**Contract**: props `{ state, report, onClose }`; a 1s interval reveals the next `deathLog` entry (unit icon struck out on its side); when the log is exhausted the result line ("Zwycięstwo!"/"Porażka" from the player's side) lingers ~1s, then `onClose` fires and the popup disappears.
+
+#### 3. GameScreen wiring
+
+**File**: `src/components/game/GameScreen.tsx`
+
+**Intent**: Open the popup when a new battle report lands.
+
+**Contract**: a `useEffect` on `state.lastBattleReport` (reference change = new battle) opens the popup; `onClose` clears it. The Phase 3 side-panel recap is unchanged.
+
+### Success Criteria:
+
+#### Automated Verification:
+
+- `npm test` — deathLog ordering (alternation, per-side counts match losses, end-of-array order), compositions carried
+- `npm run lint`
+- `npm run build`
+
+#### Manual Verification:
+
+- Attack opens the popup; units are struck out one per second, alternating sides; after the last death the popup disappears; the panel recap remains; the map state matches the outcome
+
+**Implementation Note**: pause for manual confirmation after automated checks pass.
+
+---
+
 ## Testing Strategy
 
 ### Unit Tests:
@@ -264,11 +316,23 @@ Map is 29 fields, armies ≤ 8 units; battle resolution is O(units) arithmetic o
 
 #### Automated
 
-- [x] 3.1 `npm test`
-- [x] 3.2 `npm run lint`
-- [x] 3.3 `npm run build`
+- [x] 3.1 `npm test` — 3db2ef1
+- [x] 3.2 `npm run lint` — 3db2ef1
+- [x] 3.3 `npm run build` — 3db2ef1
 
 #### Manual
 
-- [x] 3.4 Full US-01 flow on `/game` (produce → move → attack → report → capture → next-turn income)
-- [x] 3.5 Losing battle: attacker army disappears, report shows the loss
+- [x] 3.4 Full US-01 flow on `/game` (produce → move → attack → report → capture → next-turn income) — 3db2ef1
+- [x] 3.5 Losing battle: attacker army disappears, report shows the loss — 3db2ef1
+
+### Phase 4: Battle popup (staged reveal)
+
+#### Automated
+
+- [x] 4.1 `npm test` — deathLog suite green (alternation, per-side counts match losses, end-of-array order, compositions carried)
+- [x] 4.2 `npm run lint`
+- [x] 4.3 `npm run build`
+
+#### Manual
+
+- [x] 4.4 Popup plays the battle (one death per second, alternating sides), closes after the final death; panel recap remains; map state matches the outcome

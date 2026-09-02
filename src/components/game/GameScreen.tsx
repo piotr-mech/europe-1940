@@ -1,12 +1,13 @@
-import { useReducer, useState } from "react";
+import { useCallback, useReducer, useState } from "react";
 
+import { BattlePopup } from "@/components/game/BattlePopup";
 import { BoardMap } from "@/components/game/BoardMap";
 import { DetailPanel, RESOURCE_LABELS, type SelectedSubject } from "@/components/game/DetailPanel";
 import { getGameData } from "@/lib/game-data";
 import { gameReducer } from "@/lib/game-state";
 import { attackFields, reachableFields } from "@/lib/movement";
 import { cn } from "@/lib/utils";
-import type { Country, CountryId, GameState, ResourceId } from "@/types";
+import type { BattleReport, Country, CountryId, GameState, ResourceId } from "@/types";
 
 interface CountryOptionProps {
   country: Country;
@@ -52,6 +53,12 @@ export function GameScreen() {
   const [aiCountryId, setAiCountryId] = useState<CountryId>("soviet");
   const [selectedArmyId, setSelectedArmyId] = useState<string | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<SelectedSubject | null>(null);
+  // The battle popup (S-04): derived, not stored — the newest report shows
+  // until its staged reveal is dismissed (a new battle = a new reference).
+  const [dismissedReport, setDismissedReport] = useState<BattleReport | null>(null);
+  const closeBattlePopup = useCallback((report: BattleReport) => {
+    setDismissedReport(report);
+  }, []);
 
   // Picking a side in one group swaps the other, so the two can never be equal.
   const pickPlayerCountry = (id: CountryId): void => {
@@ -114,6 +121,8 @@ export function GameScreen() {
 
   const playerCountry = data.countries.find((country) => country.id === state.playerCountryId);
   const aiCountry = data.countries.find((country) => country.id === state.aiCountryId);
+  const battlePopup =
+    state.lastBattleReport !== null && state.lastBattleReport !== dismissedReport ? state.lastBattleReport : null;
 
   // The selected army's reach this turn (selection is UI state, not game state).
   const reachable = computeReach(state, selectedArmyId);
@@ -212,6 +221,7 @@ export function GameScreen() {
         </div>
         <DetailPanel state={state} selected={selectedSubject} dispatch={dispatch} />
       </div>
+      {battlePopup !== null && <BattlePopup state={state} report={battlePopup} onClose={closeBattlePopup} />}
     </main>
   );
 }
