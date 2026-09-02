@@ -72,6 +72,8 @@ export interface UnitType {
   movement: number;
   /** Extra attack vs tanks; anti-tank guns only. */
   bonusVsTank: number | null;
+  /** Flat support bonus to the attacking army's strength (FR-007, spec §12); artillery only. */
+  supportBonus: number | null;
   cost: ResourceBag;
   /** Build time in turns. */
   buildTime: number;

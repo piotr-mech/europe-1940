@@ -1,7 +1,8 @@
 /**
  * Movement rules (change: army-movement, S-02): armies move as single tokens,
  * the slowest unit sets the pace, and terrain changes the entry cost (FR-005).
- * Combat-free by design — enemy-occupied fields are impassable until S-04.
+ * Enemy-occupied fields stay impassable for movement — attacking them is the
+ * battle slice's job (S-04: `attackFields` + `src/lib/battle.ts`).
  */
 import { MAP_FIELDS } from "@/data/map";
 import { TERRAIN } from "@/data/terrain";
@@ -95,9 +96,58 @@ export function planMove(
 }
 
 /**
+ * Enemy-army-occupied fields the army can attack this turn (S-04, FR-007):
+ * reachable within its movement points as terminal destinations only — the
+ * Dijkstra never expands an enemy-occupied field, so no path leads *through*
+ * an enemy army. The army's own field is never an attack target.
+ */
+export function attackFields(state: GameState, armyId: string): Map<string, { cost: number }> {
+  const army = state.armies.find((candidate) => candidate.id === armyId);
+  if (army === undefined) {
+    throw new Error(`unknown army "${armyId}"`);
+  }
+
+  const enemyOccupied = new Set(
+    state.armies.filter((candidate) => candidate.owner !== army.owner).map((candidate) => candidate.fieldId),
+  );
+
+  const targets = new Map<string, { cost: number }>();
+  const done = new Set<string>();
+  const queue: { id: string; cost: number }[] = [{ id: army.fieldId, cost: 0 }];
+  while (queue.length > 0) {
+    queue.sort((a, b) => a.cost - b.cost);
+    const current = queue.shift();
+    if (current === undefined || done.has(current.id)) {
+      continue;
+    }
+    done.add(current.id);
+    if (current.id !== army.fieldId && enemyOccupied.has(current.id)) {
+      // Attack targets are terminal: the battle decides who ends up on the
+      // field, so an enemy field is never expanded into a longer path.
+      targets.set(current.id, { cost: current.cost });
+      continue;
+    }
+    for (const nextId of getField(current.id).connections) {
+      if (done.has(nextId)) {
+        continue;
+      }
+      const cost = current.cost + movementCostOf(getField(nextId));
+      if (cost <= army.movementPoints) {
+        queue.push({ id: nextId, cost });
+      }
+    }
+  }
+  return targets;
+}
+
+/**
  * Pure application of a move: spend the path cost, walk the army along it,
  * flip every non-city field entered to the mover's owner, and merge into a
- * standing own army on the target (FR-004 cap of 8). Throws on illegal moves.
+ * standing own army on the target (FR-004 cap of 8). An enemy city entered
+ * without a defending army is captured on the way (S-04, FR-009): it flips
+ * owner and its production queue is cancelled. Enemy-occupied fields are
+ * never on a legal path — battles go through `resolveBattle`. Throws on
+ * illegal moves.
  */
 export function applyMove(state: GameState, armyId: string, targetFieldId: string): GameState {
   const army = state.armies.find((candidate) => candidate.id === armyId);
@@ -130,11 +180,22 @@ export function applyMove(state: GameState, armyId: string, targetFieldId: strin
         );
 
   const fieldOwners = { ...state.fieldOwners };
+  const capturedCities: string[] = [];
   for (const fieldId of plan.path.slice(1)) {
-    if (getField(fieldId).type !== "city") {
-      fieldOwners[fieldId] = army.owner;
+    const field = getField(fieldId);
+    if (field.type === "city" && fieldOwners[fieldId] === army.owner) {
+      continue; // own cities never flip by movement
+    }
+    fieldOwners[fieldId] = army.owner;
+    if (field.type === "city") {
+      capturedCities.push(fieldId); // undefended enemy city: free capture (FR-009)
     }
   }
+  // Captured cities lose their queues (S-04): rebuild the record without them —
+  // empty queues drop out, as in production.ts.
+  const productionQueues = Object.fromEntries(
+    Object.entries(state.productionQueues).filter(([fieldId]) => !capturedCities.includes(fieldId)),
+  );
 
-  return { ...state, armies, fieldOwners };
+  return { ...state, armies, fieldOwners, productionQueues };
 }

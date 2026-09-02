@@ -118,6 +118,9 @@ export function validateGameData(data: GameData): string[] {
     if (unitType.bonusVsTank !== null) {
       numbers.push(["bonusVsTank", unitType.bonusVsTank]);
     }
+    if (unitType.supportBonus !== null) {
+      numbers.push(["supportBonus", unitType.supportBonus]);
+    }
     for (const [label, value] of numbers) {
       if (value < 0) {
         violations.push(`unit type "${unitType.id}" has negative ${label}`);

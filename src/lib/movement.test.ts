@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MAP_FIELDS } from "@/data/map";
 import { createInitialGameState } from "@/lib/game-state";
-import { applyMove, armySpeed, movementCostOf, planMove, reachableFields } from "@/lib/movement";
+import { applyMove, armySpeed, attackFields, movementCostOf, planMove, reachableFields } from "@/lib/movement";
 import type { Army, CountryId, GameState, UnitInstance, UnitTypeId } from "@/types";
 
 const FIELD_BY_ID = new Map(MAP_FIELDS.map((field) => [field.id, field]));
@@ -105,9 +105,57 @@ describe("planMove", () => {
   });
 });
 
+describe("attackFields", () => {
+  it("marks an enemy-occupied adjacent field as a terminal attack target", () => {
+    const state = stateWithArmies([
+      army("G", "germany", "berlin", ["infantry"]),
+      army("R", "soviet", "oder-plains", ["infantry"]),
+    ]);
+    const targets = attackFields(state, "G");
+    expect(targets.has("oder-plains")).toBe(true);
+    expect(targets.get("oder-plains")).toEqual({ cost: 1 });
+    expect(targets.size).toBe(1); // pomerania-plains has no enemy army
+  });
+
+  it("never paths through an enemy-occupied field", () => {
+    // Speed-2 tanks in Berlin; the enemy holds Oder plains; Poznan lies beyond it.
+    const state = stateWithArmies([
+      army("G", "germany", "berlin", ["tank", "tank"]),
+      army("R", "soviet", "oder-plains", ["infantry"]),
+    ]);
+    expect(attackFields(state, "G").has("oder-plains")).toBe(true);
+    expect(attackFields(state, "G").has("poznan")).toBe(false); // blocked by the enemy army
+  });
+
+  it("excludes mountains beyond a speed-1 army's reach but includes them for tanks", () => {
+    const infantry = stateWithArmies([
+      army("G", "germany", "krakow", ["infantry"]),
+      army("R", "soviet", "carpathians-mountains", ["infantry"]),
+    ]);
+    expect(attackFields(infantry, "G").has("carpathians-mountains")).toBe(false);
+
+    const tanks = stateWithArmies([
+      army("G", "germany", "krakow", ["tank"]),
+      army("R", "soviet", "carpathians-mountains", ["infantry"]),
+    ]);
+    expect(attackFields(tanks, "G").get("carpathians-mountains")).toEqual({ cost: 2 });
+  });
+
+  it("returns nothing when no enemy army is on the board", () => {
+    const state = stateWithArmies([army("G", "germany", "berlin", ["infantry"])]);
+    expect(attackFields(state, "G").size).toBe(0);
+  });
+
+  it("throws for an unknown army", () => {
+    const state = stateWithArmies([army("G", "germany", "berlin", ["infantry"])]);
+    expect(() => attackFields(state, "nope")).toThrow("unknown army");
+  });
+});
+
 describe("applyMove", () => {
-  it("moves the army, spends the path cost, and flips enemy terrain but never cities", () => {
+  it("moves the army, spends the path cost, and flips enemy terrain and undefended enemy cities", () => {
     // Soviet tank army standing on German Warsaw: speed 2, path warsaw -> bzura-river -> poznan.
+    // Poznan is an undefended German city: entering it captures it (S-04, FR-009).
     const state = stateWithArmies([army("R", "soviet", "warsaw", ["tank", "tank"])]);
     const next = applyMove(state, "R", "poznan");
 
@@ -115,7 +163,7 @@ describe("applyMove", () => {
     expect(moved.fieldId).toBe("poznan");
     expect(moved.movementPoints).toBe(0); // river 1 + city 1
     expect(next.fieldOwners["bzura-river"]).toBe("soviet"); // intermediate terrain flips
-    expect(next.fieldOwners.poznan).toBe("germany"); // cities change owner only via battle (S-04)
+    expect(next.fieldOwners.poznan).toBe("soviet"); // undefended enemy city: free capture
   });
 
   it("keeps same-owner fields unchanged and spends mountain cost", () => {
@@ -145,6 +193,27 @@ describe("applyMove", () => {
     ]);
     // The over-cap target is filtered out of the reach set, so the move reads as unreachable.
     expect(() => applyMove(state, "G1", "oder-plains")).toThrow("not reachable");
+  });
+
+  it("captures an undefended enemy city by move, cancelling its production queue (S-04)", () => {
+    // Soviet infantry on the Soviet-held Bug river; German Warsaw next door is empty.
+    const state = stateWithArmies([army("R", "soviet", "bug-river", ["infantry"])]);
+    state.productionQueues.warsaw = [{ typeId: "infantry", remainingTurns: 1 }];
+
+    const next = applyMove(state, "R", "warsaw");
+    expect(findArmy(next, "R").fieldId).toBe("warsaw");
+    expect(next.fieldOwners.warsaw).toBe("soviet");
+    expect(next.productionQueues.warsaw).toBeUndefined();
+  });
+
+  it("keeps own cities' queues when passing through them", () => {
+    // German army marching Berlin -> Oder plains -> Poznan, all German, queue intact.
+    const state = stateWithArmies([army("G", "germany", "berlin", ["tank", "tank"])]);
+    state.productionQueues.poznan = [{ typeId: "infantry", remainingTurns: 1 }];
+
+    const next = applyMove(state, "G", "poznan");
+    expect(next.fieldOwners.poznan).toBe("germany");
+    expect(next.productionQueues.poznan).toEqual([{ typeId: "infantry", remainingTurns: 1 }]);
   });
 
   it("throws for unreachable or enemy-held targets", () => {
