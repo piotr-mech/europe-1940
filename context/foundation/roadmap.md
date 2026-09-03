@@ -47,7 +47,7 @@ A simple, turn-based, board-game-style strategy game set in Europe 1940 — buil
 | S-03 | resources-production | collect city income each turn and order new units in cities                | S-01          | FR-002, FR-003, US-01          | done |
 | S-04 | battle-city-capture  | attack an enemy field, win an automatic battle, take ownership of a city   | S-02, S-03    | FR-007, FR-008, FR-009, US-01  | done |
 | S-05 | supply-lines         | see supply status and suffer the penalty when the line is cut              | S-04          | FR-010, FR-011, Business Logic | done |
-| S-06 | ai-opponent          | end the turn and face an AI opponent acting by rules                       | S-04          | FR-012                         | proposed |
+| S-06 | ai-opponent          | end the turn and face an AI opponent acting by rules                       | S-04          | FR-012                         | in-progress |
 | S-07 | victory-conditions   | win or lose the campaign by controlling all enemy cities                   | S-06          | FR-013                         | proposed |
 | S-08 | save-resume          | interrupt a game and continue it later; survive a page refresh             | S-07          | FR-014, Guardrails             | proposed |
 
@@ -160,7 +160,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Rule-based AI must feel logical, not random (NFR: no unexplainable situations; AI turn without long waits); parallel to supply so the campaign loop advances on two fronts.
-- **Status:** proposed
+- **Status:** in-progress
 
 ### S-07: Victory and defeat
 

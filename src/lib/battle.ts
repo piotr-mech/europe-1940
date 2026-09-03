@@ -24,8 +24,12 @@ import type {
   UnitTypeId,
 } from "@/types";
 
-/** Each side's strength is scaled by a uniform roll within ±this band around 1 (US-01: small random element). Draft balance value. */
-const ROLL_SPREAD = 0.2;
+/**
+ * Each side's strength is scaled by a uniform roll within ±this band around 1
+ * (US-01: small random element). Draft balance value. Exported for the AI's
+ * analytic win probability (S-06) — the two must describe the same rolls.
+ */
+export const ROLL_SPREAD = 0.2;
 
 const FIELD_BY_ID: ReadonlyMap<string, MapField> = new Map(MAP_FIELDS.map((field) => [field.id, field]));
 

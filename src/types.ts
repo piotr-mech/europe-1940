@@ -94,6 +94,14 @@ export interface GameData {
   fields: readonly MapField[];
 }
 
+// --- AI turn (S-06) ---
+
+/** One planned AI action; produced by planAiTurn, applied one per `aiStep`. */
+export type AiAction =
+  | { kind: "move"; armyId: string; targetFieldId: string }
+  | { kind: "attack"; armyId: string; targetFieldId: string }
+  | { kind: "order"; fieldId: string; unitTypeId: UnitTypeId };
+
 // --- Battle (S-04) ---
 
 /** One line of the battle report's "why" (NFR: no unexplainable outcomes). */
