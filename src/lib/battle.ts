@@ -11,6 +11,7 @@ import { MAP_FIELDS } from "@/data/map";
 import { TERRAIN } from "@/data/terrain";
 import { UNIT_TYPES } from "@/data/units";
 import { attackFields } from "@/lib/movement";
+import { isSupplied } from "@/lib/supply";
 import type {
   Army,
   BattleDeath,
@@ -67,9 +68,14 @@ export interface BattleResult {
 /**
  * The attacking army's strength: Σ unit attack + artillery support (FR-007,
  * spec §12) − the river-crossing penalty when the defender stands on a river
- * field. Clamped at 0 (a penalty can never make strength negative).
+ * field − the integer −25% supply penalty for an unsupplied attacker (FR-011,
+ * S-05). Clamped at 0 (a penalty can never make strength negative).
  */
-export function attackerStrength(army: Army, targetField: MapField): { total: number; modifiers: BattleModifier[] } {
+export function attackerStrength(
+  army: Army,
+  targetField: MapField,
+  unsupplied = false,
+): { total: number; modifiers: BattleModifier[] } {
   const modifiers: BattleModifier[] = [];
   let total = 0;
   let support = 0;
@@ -89,6 +95,15 @@ export function attackerStrength(army: Army, targetField: MapField): { total: nu
       modifiers.push({ label: "Atak przez rzekę", amount: -penalty });
     }
   }
+  if (unsupplied) {
+    // FR-011: integer −25% for an unsupplied attacker; the modifier line
+    // keeps the report's arithmetic explainable (S-05).
+    const penalty = supplyPenaltyOf(total);
+    if (penalty > 0) {
+      total -= penalty;
+      modifiers.push({ label: "Brak zaopatrzenia", amount: -penalty });
+    }
+  }
   if (total < 0) {
     // Strength never drops below 0; surface the absorbed over-penalty so the
     // report's modifier arithmetic still adds up (review F4).
@@ -98,17 +113,39 @@ export function attackerStrength(army: Army, targetField: MapField): { total: nu
   return { total, modifiers };
 }
 
+/** The integer −25% supply penalty for a side's strength (FR-011, S-05). */
+function supplyPenaltyOf(strength: number): number {
+  return Math.round(strength * 0.25);
+}
+
 /**
  * The defending side's strength: Σ unit defense over every enemy army on the
- * field (they defend together) + the terrain or city defense bonus (FR-007).
+ * field (they defend together), each army minus its own integer −25% supply
+ * penalty when cut off (FR-011, S-05 — `unsuppliedIds` carries army ids), +
+ * the terrain or city defense bonus (FR-007).
  */
-export function defenderStrength(defenders: Army[], field: MapField): { total: number; modifiers: BattleModifier[] } {
+export function defenderStrength(
+  defenders: Army[],
+  field: MapField,
+  unsuppliedIds: ReadonlySet<string> = new Set(),
+): { total: number; modifiers: BattleModifier[] } {
   const modifiers: BattleModifier[] = [];
   let total = 0;
+  let supplyPenalty = 0;
   for (const army of defenders) {
+    let armyTotal = 0;
     for (const unit of army.units) {
-      total += getUnitType(unit.typeId).defense;
+      armyTotal += getUnitType(unit.typeId).defense;
     }
+    if (unsuppliedIds.has(army.id)) {
+      const penalty = supplyPenaltyOf(armyTotal);
+      armyTotal -= penalty;
+      supplyPenalty += penalty;
+    }
+    total += armyTotal;
+  }
+  if (supplyPenalty > 0) {
+    modifiers.push({ label: "Brak zaopatrzenia", amount: -supplyPenalty });
   }
   if (field.type === "city") {
     const bonus = field.city?.defenseBonus ?? 0;
@@ -156,8 +193,13 @@ export function resolveBattle(state: GameState, armyId: string, targetFieldId: s
     throw new Error(`field "${targetFieldId}" is not an attack target for army "${armyId}"`);
   }
 
-  const attack = attackerStrength(army, field);
-  const defense = defenderStrength(defenders, field);
+  // Supply penalties (FR-011, S-05): evaluated per army — the attacker and
+  // each defender can be cut off independently.
+  const attack = attackerStrength(army, field, !isSupplied(state, army));
+  const unsuppliedDefenderIds = new Set(
+    defenders.filter((defender) => !isSupplied(state, defender)).map((defender) => defender.id),
+  );
+  const defense = defenderStrength(defenders, field, unsuppliedDefenderIds);
 
   // Three draws: attacker roll, defender roll, then the winner-loss draw.
   const rollA = rngStep(rngSeed);

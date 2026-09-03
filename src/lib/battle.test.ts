@@ -142,11 +142,13 @@ describe("resolveBattle", () => {
   });
 
   it("weaker attacker can win on the random roll (US-01: not entirely predictable, seed 6)", () => {
+    // Both sides on own soil across the border (Lublin -> Volhynia), plains:
+    // no modifiers, both supplied — the pure strength comparison.
     const state = stateWithArmies([
-      army("G", "germany", "berlin", Array<UnitTypeId>(6).fill("infantry")),
-      army("R", "soviet", "oder-plains", Array<UnitTypeId>(4).fill("infantry")),
+      army("G", "germany", "lublin-plains", Array<UnitTypeId>(6).fill("infantry")),
+      army("R", "soviet", "volhynia-plains", Array<UnitTypeId>(4).fill("infantry")),
     ]);
-    const { state: next, report } = resolveBattle(state, "G", "oder-plains", 6);
+    const { state: next, report } = resolveBattle(state, "G", "volhynia-plains", 6);
 
     expect(report.attackStrength).toBe(18); // 6 x A3
     expect(report.defenseStrength).toBe(20); // 4 x D5, plains: no bonus
@@ -171,10 +173,10 @@ describe("resolveBattle", () => {
 
   it("removes losses from the end of the unit array", () => {
     const state = stateWithArmies([
-      army("G", "germany", "berlin", Array<UnitTypeId>(6).fill("infantry")),
-      army("R", "soviet", "oder-plains", Array<UnitTypeId>(4).fill("infantry")),
+      army("G", "germany", "lublin-plains", Array<UnitTypeId>(6).fill("infantry")),
+      army("R", "soviet", "volhynia-plains", Array<UnitTypeId>(4).fill("infantry")),
     ]);
-    const { state: next } = resolveBattle(state, "G", "oder-plains", 6);
+    const { state: next } = resolveBattle(state, "G", "volhynia-plains", 6);
     const remaining = findArmy(next, "G").units;
     expect(remaining.map((unit) => unit.id)).toEqual(["u1"]); // u2..u6 destroyed
   });
@@ -351,5 +353,76 @@ describe("deathLog (staged popup reveal)", () => {
     expect(report.defenderComposition).toEqual(["infantry", "antiTank"]);
     expect(report.deathLog).toHaveLength(2); // 0 attacker + 2 defender deaths
     expect(report.deathLog.every((death) => death.side === "defender")).toBe(true);
+  });
+});
+
+describe("supply penalties in battle (FR-011, S-05)", () => {
+  it("subtracts round(25%) from an unsupplied attacker as an integer modifier", () => {
+    // 6 infantry: A18, penalty round(4.5) = 5 -> 13.
+    const result = attackerStrength(
+      army("G", "germany", "berlin", Array<UnitTypeId>(6).fill("infantry")),
+      field("oder-plains"),
+      true,
+    );
+    expect(result.total).toBe(13);
+    expect(result.modifiers).toEqual([{ label: "Brak zaopatrzenia", amount: -5 }]);
+  });
+
+  it("rounds the half-up boundary (14 -> -4 -> 10)", () => {
+    const result = attackerStrength(army("G", "germany", "berlin", ["tank", "tank"]), field("oder-plains"), true);
+    expect(result.total).toBe(10);
+    expect(result.modifiers).toEqual([{ label: "Brak zaopatrzenia", amount: -4 }]);
+  });
+
+  it("subtracts round(25%) per unsupplied defender army", () => {
+    // Two defenders of 2 infantry each (D10): only R2 cut off, penalty
+    // round(2.5) = 3 -> total 10 + 7 = 17.
+    const result = defenderStrength(
+      [
+        army("R1", "soviet", "oder-plains", ["infantry", "infantry"]),
+        army("R2", "soviet", "oder-plains", ["infantry", "infantry"]),
+      ],
+      field("oder-plains"),
+      new Set(["R2"]),
+    );
+    expect(result.total).toBe(17);
+    expect(result.modifiers).toEqual([{ label: "Brak zaopatrzenia", amount: -3 }]);
+  });
+
+  it("resolveBattle derives supply from live ownership for both sides", () => {
+    // German tank army on Oder plains is walled off (Berlin, Poznań, Pomerania
+    // Soviet-held): A56 -> -14 -> 42. The defender stands on Soviet Berlin,
+    // an own city: supplied, D5 + city 3 = 8.
+    const base = stateWithArmies([
+      army("G", "germany", "oder-plains", Array<UnitTypeId>(8).fill("tank")),
+      army("R", "soviet", "berlin", ["infantry"]),
+    ]);
+    const state = {
+      ...base,
+      fieldOwners: {
+        ...base.fieldOwners,
+        berlin: "soviet" as const,
+        poznan: "soviet" as const,
+        "pomerania-plains": "soviet" as const,
+      },
+    };
+    const { report } = resolveBattle(state, "G", "berlin", 1);
+
+    expect(report.attackStrength).toBe(42);
+    expect(report.defenseStrength).toBe(8);
+    expect(report.attackModifiers).toEqual([{ label: "Brak zaopatrzenia", amount: -14 }]);
+    // The defender stands on its own city: supplied — only the city bonus shows.
+    expect(report.defenseModifiers).toEqual([{ label: "Berlin (miasto)", amount: 3 }]);
+  });
+
+  it("keeps the supplied path unchanged (live-game regression)", () => {
+    const state = stateWithArmies([
+      army("G", "germany", "lublin-plains", Array<UnitTypeId>(6).fill("infantry")),
+      army("R", "soviet", "volhynia-plains", Array<UnitTypeId>(4).fill("infantry")),
+    ]);
+    const { report } = resolveBattle(state, "G", "volhynia-plains", 6);
+    expect(report.attackModifiers).toEqual([]);
+    expect(report.defenseModifiers).toEqual([]);
+    expect(report.attackStrength).toBe(18); // the S-04 upset scenario, unchanged
   });
 });
