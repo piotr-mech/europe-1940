@@ -1,10 +1,10 @@
 ---
 change_id: supply-lines
 title: Supply lines and unsupplied penalties
-status: impl_reviewed
+status: archived
 created: 2026-09-03
 updated: 2026-09-03
-archived_at: null
+archived_at: 2026-09-03T20:28:49Z
 ---
 
 ## Notes
