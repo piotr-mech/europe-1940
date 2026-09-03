@@ -2,6 +2,7 @@ import { getGameData } from "@/lib/game-data";
 import { dominantUnitType, type GameAction } from "@/lib/game-state";
 import { armySpeed, movementCostOf } from "@/lib/movement";
 import { freeProductionSlots, unitCostFor } from "@/lib/production";
+import { isSupplied } from "@/lib/supply";
 import { UNIT_ICON } from "@/components/game/unit-icons";
 import type { BattleModifier, BattleReport, Country, GameState, ResourceId, TerrainType, UnitTypeId } from "@/types";
 
@@ -91,6 +92,10 @@ export function DetailPanel({ state, selected, dispatch }: DetailPanelProps) {
             <StatRow label="Jednostki" value={`${army.units.length} / 8`} />
             <StatRow label="Ruch" value={`${army.movementPoints} / ${armySpeed(army)}`} />
             <StatRow label="Typ dominujący" value={unitTypeById.get(dominant)?.name ?? dominant} />
+            <StatRow
+              label="Zaopatrzenie"
+              value={isSupplied(state, army) ? "Tak" : "Brak — ruch max 1, atak/obrona −25%"}
+            />
           </dl>
           <ul className="grid gap-1.5 text-sm">
             {[...counts.entries()].map(([typeId, count]) => {

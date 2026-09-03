@@ -3,6 +3,7 @@ import { UNIT_TYPES } from "@/data/units";
 import { resolveBattle } from "@/lib/battle";
 import { applyMove, armySpeed } from "@/lib/movement";
 import { advanceProduction, applyProductionOrder, collectIncome } from "@/lib/production";
+import { movementAllowance } from "@/lib/supply";
 import type { Army, CountryId, GameState, ResourceBag, UnitInstance, UnitTypeId } from "@/types";
 
 /**
@@ -187,7 +188,13 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       return {
         ...withProduction,
         turn: state.turn + 1,
-        armies: withProduction.armies.map((army) => ({ ...army, movementPoints: armySpeed(army) })),
+        // The FR-011 movement cap applies here: an unsupplied army starts the
+        // next turn with max 1 movement point (S-05). Supply reads live
+        // ownership; armies produced this tick stand on own cities.
+        armies: withProduction.armies.map((army) => ({
+          ...army,
+          movementPoints: movementAllowance(withProduction, army),
+        })),
       };
     }
   }

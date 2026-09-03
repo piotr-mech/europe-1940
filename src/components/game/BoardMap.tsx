@@ -4,6 +4,7 @@ import backgroundUrl from "@/assets/europe-regions.svg?url";
 import { UNIT_ICON } from "@/components/game/unit-icons";
 import { getGameData } from "@/lib/game-data";
 import { dominantUnitType } from "@/lib/game-state";
+import { isSupplied } from "@/lib/supply";
 import type { GameState, MapField } from "@/types";
 
 const CANVAS_W = 1800;
@@ -301,8 +302,21 @@ export function BoardMap({
         const tokenX = field.x + TOKEN_OFFSET_X;
         const tokenY = field.y + TOKEN_OFFSET_Y;
         const selected = army.id === selectedArmyId;
+        const unsupplied = !isSupplied(state, army);
         return (
           <g key={army.id} style={{ cursor: army.owner === state.playerCountryId ? "pointer" : "default" }}>
+            {unsupplied && (
+              // Cut-off marker (FR-010/011, S-05): an amber dot above the
+              // token — visible for both sides' armies.
+              <circle
+                cx={tokenX + TOKEN_W / 2}
+                cy={tokenY - 4}
+                r={2.5}
+                fill="#f59e0b"
+                stroke="#f8fafc"
+                strokeWidth={1}
+              />
+            )}
             {selected && (
               <rect
                 x={tokenX - 2}

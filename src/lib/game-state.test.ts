@@ -169,8 +169,43 @@ describe("gameReducer", () => {
 
     expect(next?.turn).toBe(2);
     for (const army of next?.armies ?? []) {
-      expect(army.movementPoints).toBe(armySpeed(army));
+      expect(army.movementPoints).toBe(armySpeed(army)); // all supplied: full speed
     }
+  });
+
+  it("endTurn caps an unsupplied army's movement at 1 (FR-011, S-05)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // A German tank army holds Volhynia, but every neighbouring field is
+    // Soviet: walled off from any German city. Soviet tanks sit on own Kiev.
+    const cut = {
+      ...base,
+      armies: [
+        {
+          id: "G1",
+          owner: "germany" as const,
+          fieldId: "volhynia-plains",
+          units: [{ id: "G1-u1", typeId: "tank" as const }],
+          movementPoints: 2,
+        },
+        {
+          id: "R1",
+          owner: "soviet" as const,
+          fieldId: "kiev",
+          units: [{ id: "R1-u1", typeId: "tank" as const }],
+          movementPoints: 2,
+        },
+      ],
+      fieldOwners: {
+        ...base.fieldOwners,
+        "volhynia-plains": "germany" as const,
+        "carpathians-mountains": "soviet" as const,
+        "lublin-plains": "soviet" as const,
+      },
+    };
+
+    const next = gameReducer(cut, { type: "endTurn" });
+    expect(next?.armies.find((army) => army.id === "G1")?.movementPoints).toBe(1); // capped from 2
+    expect(next?.armies.find((army) => army.id === "R1")?.movementPoints).toBe(2); // supplied: full speed
   });
 
   it("endTurn collects both countries' income on top of the seeded treasury", () => {

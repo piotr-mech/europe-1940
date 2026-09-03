@@ -189,18 +189,18 @@ None — no schema or state-shape changes.
 
 #### Automated
 
-- [x] 1.1 `npm test` — supply suite green (BFS cases incl. walled-off and cityless component; battle penalties per side with rounding and per-army defenders; movement allowance caps)
-- [x] 1.2 `npm run lint`
-- [x] 1.3 `npm run build`
+- [x] 1.1 `npm test` — supply suite green (BFS cases incl. walled-off and cityless component; battle penalties per side with rounding and per-army defenders; movement allowance caps) — 8fc4b04
+- [x] 1.2 `npm run lint` — 8fc4b04
+- [x] 1.3 `npm run build` — 8fc4b04
 
 ### Phase 2: Reducer and UI wiring
 
 #### Automated
 
-- [ ] 2.1 `npm test` — reducer endTurn cap suite green (unsupplied tank resets to 1)
-- [ ] 2.2 `npm run lint`
-- [ ] 2.3 `npm run build`
+- [x] 2.1 `npm test` — reducer endTurn cap suite green (unsupplied tank resets to 1)
+- [x] 2.2 `npm run lint`
+- [x] 2.3 `npm run build`
 
 #### Manual
 
-- [ ] 2.4 Positive path on `/game`: panel shows Zaopatrzenie: Tak, no markers, no supply modifier in battle reports
+- [x] 2.4 Positive path on `/game`: panel shows Zaopatrzenie: Tak, no markers, no supply modifier in battle reports
