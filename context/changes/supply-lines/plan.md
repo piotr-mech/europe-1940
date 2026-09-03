@@ -197,10 +197,10 @@ None — no schema or state-shape changes.
 
 #### Automated
 
-- [x] 2.1 `npm test` — reducer endTurn cap suite green (unsupplied tank resets to 1)
-- [x] 2.2 `npm run lint`
-- [x] 2.3 `npm run build`
+- [x] 2.1 `npm test` — reducer endTurn cap suite green (unsupplied tank resets to 1) — 7d2d2a7
+- [x] 2.2 `npm run lint` — 7d2d2a7
+- [x] 2.3 `npm run build` — 7d2d2a7
 
 #### Manual
 
-- [x] 2.4 Positive path on `/game`: panel shows Zaopatrzenie: Tak, no markers, no supply modifier in battle reports
+- [x] 2.4 Positive path on `/game`: panel shows Zaopatrzenie: Tak, no markers, no supply modifier in battle reports — 7d2d2a7
