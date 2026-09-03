@@ -160,7 +160,13 @@ export function defenderStrength(
       modifiers.push({ label: `${field.name} (teren)`, amount: bonus });
     }
   }
-  return { total: Math.max(0, total), modifiers };
+  if (total < 0) {
+    // Mirror of the attacker-side balancing entry (review S-04 F4, added
+    // here for symmetry in review S-05 F4): unreachable with current data.
+    modifiers.push({ label: "Siła nie spada poniżej 0", amount: -total });
+    total = 0;
+  }
+  return { total, modifiers };
 }
 
 /**

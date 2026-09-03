@@ -160,11 +160,13 @@ describe("resolveBattle", () => {
 
   it("clamps winner losses so the winner always survives with >= 1 unit (seed 6)", () => {
     // 2 tanks (A14) vs 2 infantry in the forest (D12): unclamped cap = 2, clamp = 1.
+    // Both on own soil: Koenigsberg (German city) and Mazury forest (German,
+    // supplied for the Soviet defender via Niemen -> Vilnius).
     const state = stateWithArmies([
-      army("G", "germany", "minsk", ["tank", "tank"]),
-      army("R", "soviet", "bialowieza-forest", ["infantry", "infantry"]),
+      army("G", "germany", "koenigsberg", ["tank", "tank"]),
+      army("R", "soviet", "mazury-forest", ["infantry", "infantry"]),
     ]);
-    const { state: next, report } = resolveBattle(state, "G", "bialowieza-forest", 6);
+    const { state: next, report } = resolveBattle(state, "G", "mazury-forest", 6);
 
     expect(report.attackerWins).toBe(true);
     expect(report.attackerLosses).toBe(1); // the clamp, not the raw cap of 2
@@ -218,31 +220,32 @@ describe("resolveBattle", () => {
   });
 
   it("flips the marched path on an attacker victory — one ownership rule with moves (review F1)", () => {
-    // German tanks in Minsk (speed 2) attack Soviet infantry in Brest through
-    // the Bialowieza forest: minsk -> bialowieza-forest -> brest.
+    // German tanks in Warsaw (speed 2) attack Soviet infantry in Brest through
+    // the Bug river: warsaw -> bug-river -> brest.
     const winning = stateWithArmies([
-      army("G", "germany", "minsk", ["tank", "tank", "tank", "tank"]),
+      army("G", "germany", "warsaw", ["tank", "tank", "tank", "tank"]),
       army("R", "soviet", "brest", ["infantry"]),
     ]);
     const { state: next, report } = resolveBattle(winning, "G", "brest", 1);
     expect(report.attackerWins).toBe(true);
-    expect(next.fieldOwners["bialowieza-forest"]).toBe("germany"); // marched through: flips
+    expect(next.fieldOwners["bug-river"]).toBe("germany"); // marched through: flips
     expect(next.fieldOwners.brest).toBe("germany"); // fought over: captured
 
     // A defender victory flips nothing — the attacker died on the way.
     const losing = stateWithArmies([
-      army("G", "germany", "minsk", ["tank", "tank"]),
+      army("G", "germany", "warsaw", ["tank", "tank"]),
       army("R", "soviet", "brest", Array<UnitTypeId>(8).fill("infantry")),
     ]);
     const defended = resolveBattle(losing, "G", "brest", 1);
     expect(defended.report.attackerWins).toBe(false);
-    expect(defended.state.fieldOwners["bialowieza-forest"]).toBe("soviet");
+    expect(defended.state.fieldOwners["bug-river"]).toBe("soviet");
     expect(defended.state.fieldOwners.brest).toBe("soviet");
   });
 
   it("captures a city: owner flips, queue cancelled, income flows to the winner next turn (FR-009)", () => {
+    // German tanks march Warsaw -> Bug river -> Brest (speed 2).
     const before = stateWithArmies([
-      army("G", "germany", "bug-river", ["tank", "tank", "tank", "tank", "tank", "tank", "tank", "tank"]),
+      army("G", "germany", "warsaw", ["tank", "tank", "tank", "tank", "tank", "tank", "tank", "tank"]),
       army("R", "soviet", "brest", ["infantry"]),
     ]);
     before.productionQueues.brest = [{ typeId: "infantry", remainingTurns: 1 }];
@@ -424,5 +427,32 @@ describe("supply penalties in battle (FR-011, S-05)", () => {
     expect(report.attackModifiers).toEqual([]);
     expect(report.defenseModifiers).toEqual([]);
     expect(report.attackStrength).toBe(18); // the S-04 upset scenario, unchanged
+  });
+
+  it("applies both sides' supply penalties in one battle (plan promise, review F7)", () => {
+    // German infantry holds Volhynia (German-owned) walled off by Soviet
+    // fields; Soviet infantry holds Lublin walled off by German fields —
+    // both sides cut off: A18 - 5 vs D20 - 5.
+    const base = stateWithArmies([
+      army("G", "germany", "volhynia-plains", Array<UnitTypeId>(6).fill("infantry")),
+      army("R", "soviet", "lublin-plains", Array<UnitTypeId>(4).fill("infantry")),
+    ]);
+    const state = {
+      ...base,
+      fieldOwners: {
+        ...base.fieldOwners,
+        "volhynia-plains": "germany" as const,
+        "lublin-plains": "soviet" as const,
+        "carpathians-mountains": "soviet" as const,
+        kiev: "soviet" as const,
+        "bug-river": "germany" as const, // else Lublin reaches Soviet Brest via the Bug
+      },
+    };
+    const { report } = resolveBattle(state, "G", "lublin-plains", 1);
+
+    expect(report.attackStrength).toBe(13); // 18 - round(4.5)
+    expect(report.defenseStrength).toBe(15); // 20 - round(5)
+    expect(report.attackModifiers).toEqual([{ label: "Brak zaopatrzenia", amount: -5 }]);
+    expect(report.defenseModifiers).toEqual([{ label: "Brak zaopatrzenia", amount: -5 }]);
   });
 });

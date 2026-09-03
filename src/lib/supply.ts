@@ -31,6 +31,16 @@ function getField(fieldId: string): MapField {
  * their owner's field after S-04's ownership rules).
  */
 export function isSupplied(state: GameState, army: Army): boolean {
+  const start = getField(army.fieldId); // throws on unknown ids (defensive style)
+  if (state.fieldOwners[start.id] !== army.owner) {
+    // Defensive guard (review F3): the engine keeps armies on their owner's
+    // fields, but a future writer (AI, save migration) breaking that
+    // invariant must not read an army on an enemy city as supplied.
+    return false;
+  }
+  if (start.city !== null) {
+    return true; // standing on an own city: trivially supplied
+  }
   const visited = new Set<string>([army.fieldId]);
   const queue: string[] = [army.fieldId];
   while (queue.length > 0) {

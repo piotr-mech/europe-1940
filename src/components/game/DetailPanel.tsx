@@ -1,8 +1,8 @@
 import { getGameData } from "@/lib/game-data";
 import { dominantUnitType, type GameAction } from "@/lib/game-state";
-import { armySpeed, movementCostOf } from "@/lib/movement";
+import { movementCostOf } from "@/lib/movement";
 import { freeProductionSlots, unitCostFor } from "@/lib/production";
-import { isSupplied } from "@/lib/supply";
+import { isSupplied, movementAllowance } from "@/lib/supply";
 import { UNIT_ICON } from "@/components/game/unit-icons";
 import type { BattleModifier, BattleReport, Country, GameState, ResourceId, TerrainType, UnitTypeId } from "@/types";
 
@@ -90,7 +90,7 @@ export function DetailPanel({ state, selected, dispatch }: DetailPanelProps) {
           </header>
           <dl className="grid gap-1 text-sm">
             <StatRow label="Jednostki" value={`${army.units.length} / 8`} />
-            <StatRow label="Ruch" value={`${army.movementPoints} / ${armySpeed(army)}`} />
+            <StatRow label="Ruch" value={`${army.movementPoints} / ${movementAllowance(state, army)}`} />
             <StatRow label="Typ dominujący" value={unitTypeById.get(dominant)?.name ?? dominant} />
             <StatRow
               label="Zaopatrzenie"

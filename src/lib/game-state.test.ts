@@ -292,7 +292,7 @@ describe("gameReducer", () => {
       {
         id: "G1",
         owner: "germany" as const,
-        fieldId: "bug-river",
+        fieldId: "warsaw",
         units: Array.from({ length: 8 }, (_, index) => ({ id: `G1-u${index + 1}`, typeId: "tank" as const })),
         movementPoints: 2,
       },
@@ -321,7 +321,7 @@ describe("gameReducer", () => {
       {
         id: "G1",
         owner: "germany" as const,
-        fieldId: "bug-river",
+        fieldId: "warsaw",
         units: [{ id: "G1-u1", typeId: "tank" as const }],
         movementPoints: 2,
       },
@@ -348,7 +348,7 @@ describe("gameReducer", () => {
     // Corrupted army (units: null) — attackerStrength's for..of throws TypeError,
     // which the backstop must NOT swallow.
     const armies = [
-      { id: "G1", owner: "germany" as const, fieldId: "bug-river", units: null, movementPoints: 2 },
+      { id: "G1", owner: "germany" as const, fieldId: "warsaw", units: null, movementPoints: 2 },
       {
         id: "R1",
         owner: "soviet" as const,

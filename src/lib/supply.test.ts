@@ -40,8 +40,10 @@ describe("isSupplied", () => {
   });
 
   it("is unsupplied when enemy fields wall the army off from every own city", () => {
-    // Volhynia's connections (Carpathians, Lublin, Kiev) all Soviet-owned.
+    // The army holds Volhynia (German-owned), but its connections
+    // (Carpathians, Lublin, Kiev) are all Soviet-owned.
     const state = stateWith([army("G", "germany", "volhynia-plains", ["infantry"])], {
+      "volhynia-plains": "germany",
       "carpathians-mountains": "soviet",
       "lublin-plains": "soviet",
       kiev: "soviet",
@@ -52,6 +54,7 @@ describe("isSupplied", () => {
   it("one open link in the wall restores supply", () => {
     // Same cut, but Lublin stays German: Lublin -> Warsaw (city) supplies.
     const state = stateWith([army("G", "germany", "volhynia-plains", ["infantry"])], {
+      "volhynia-plains": "germany",
       "carpathians-mountains": "soviet",
       kiev: "soviet",
     });
@@ -68,7 +71,12 @@ describe("isSupplied", () => {
   });
 
   it("evaluates each side independently", () => {
-    const cut = { "carpathians-mountains": "soviet", "lublin-plains": "soviet", kiev: "soviet" };
+    const cut = {
+      "volhynia-plains": "germany",
+      "carpathians-mountains": "soviet",
+      "lublin-plains": "soviet",
+      kiev: "soviet",
+    };
     const state = stateWith(
       [army("G", "germany", "volhynia-plains", ["infantry"]), army("R", "soviet", "kiev", ["infantry"])],
       cut,
@@ -92,6 +100,7 @@ describe("movementAllowance (FR-011 movement cap)", () => {
 
   it("caps tanks at 1 when unsupplied", () => {
     const state = stateWith([army("G", "germany", "volhynia-plains", ["tank", "tank"])], {
+      "volhynia-plains": "germany",
       "carpathians-mountains": "soviet",
       "lublin-plains": "soviet",
       kiev: "soviet",
@@ -100,7 +109,12 @@ describe("movementAllowance (FR-011 movement cap)", () => {
   });
 
   it("leaves infantry at 1 either way", () => {
-    const cut = { "carpathians-mountains": "soviet", "lublin-plains": "soviet", kiev: "soviet" };
+    const cut = {
+      "volhynia-plains": "germany",
+      "carpathians-mountains": "soviet",
+      "lublin-plains": "soviet",
+      kiev: "soviet",
+    };
     const supplied = stateWith([army("G", "germany", "warsaw", ["infantry"])]);
     const unsupplied = stateWith([army("G", "germany", "volhynia-plains", ["infantry"])], cut);
     expect(movementAllowance(supplied, supplied.armies[0])).toBe(1);

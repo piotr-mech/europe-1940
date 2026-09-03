@@ -310,7 +310,7 @@ export function BoardMap({
               // token — visible for both sides' armies.
               <circle
                 cx={tokenX + TOKEN_W / 2}
-                cy={tokenY - 4}
+                cy={tokenY - 5.5}
                 r={2.5}
                 fill="#f59e0b"
                 stroke="#f8fafc"
