@@ -5,6 +5,7 @@ import { resolveBattle } from "@/lib/battle";
 import { applyMove, armySpeed } from "@/lib/movement";
 import { advanceProduction, applyProductionOrder, collectIncome } from "@/lib/production";
 import { movementAllowance } from "@/lib/supply";
+import { winnerOf } from "@/lib/victory";
 import type {
   AiAction,
   AiTurnLogEntry,
@@ -99,6 +100,7 @@ export function createInitialGameState(playerCountryId: CountryId, aiCountryId: 
     lastBattleReportByCountry: { germany: null, soviet: null },
     aiPlan: [],
     aiTurnLog: [],
+    winner: null,
   };
   return collectIncome(fresh);
 }
@@ -131,7 +133,8 @@ export type GameAction =
   | { type: "attackArmy"; armyId: string; targetFieldId: string }
   | { type: "orderUnit"; fieldId: string; unitTypeId: UnitTypeId }
   | { type: "endTurn" }
-  | { type: "aiStep" };
+  | { type: "aiStep" }
+  | { type: "resetGame" };
 
 /**
  * Rethrows developer errors (mistyped import, undefined access) — backstops
@@ -142,15 +145,30 @@ export function isDomainError(error: unknown): boolean {
   return !(error instanceof ReferenceError || error instanceof TypeError || error instanceof SyntaxError);
 }
 
+/**
+ * S-07 victory check for the success path of ownership-changing actions:
+ * snapshots the derived winner into the state the moment a capture completes
+ * the condition, clearing `aiPlan` so a mid-replay win stops the AI driver.
+ * Returns the state unchanged while the campaign is undecided.
+ */
+function withVictoryCheck(state: GameState): GameState {
+  if (state.winner !== null) return state;
+  const winner = winnerOf(state);
+  if (winner === null) return state;
+  return { ...state, winner, aiPlan: [] };
+}
+
 /** Reducer for the GameScreen island; `null` state = setup screen. */
 export function gameReducer(state: GameState | null, action: GameAction): GameState | null {
   switch (action.type) {
     case "startGame":
       return createInitialGameState(action.playerCountryId, action.aiCountryId, action.seed);
+    case "resetGame":
+      return null; // back to the setup screen (S-07) — the only exit from a finished game
     case "moveArmy": {
-      if (state === null) return state;
+      if (state?.winner !== null) return state; // finished game: frozen (S-07)
       try {
-        return applyMove(state, action.armyId, action.targetFieldId);
+        return withVictoryCheck(applyMove(state, action.armyId, action.targetFieldId));
       } catch (error) {
         // Illegal move (unreachable target, over-cap merge): leave the state
         // untouched — the UI only offers reachable targets, this is a backstop.
@@ -160,7 +178,7 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       }
     }
     case "attackArmy": {
-      if (state === null) return state;
+      if (state?.winner !== null) return state; // finished game: frozen (S-07)
       try {
         // The battle consumes the stored PRNG seed and writes back the advanced
         // one plus the report into the attacking side's slot (S-06: per-side
@@ -170,11 +188,11 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
           report,
           nextSeed,
         } = resolveBattle(state, action.armyId, action.targetFieldId, state.rngSeed);
-        return {
+        return withVictoryCheck({
           ...afterBattle,
           rngSeed: nextSeed,
           lastBattleReportByCountry: { ...state.lastBattleReportByCountry, [report.attackerOwner]: report },
-        };
+        });
       } catch (error) {
         // Illegal attack (no enemy army on the field, out of reach): leave the
         // state untouched — the UI only offers attack targets, this is a
@@ -184,7 +202,7 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       }
     }
     case "orderUnit": {
-      if (state === null) return state;
+      if (state?.winner !== null) return state; // finished game: frozen (S-07)
       try {
         return applyProductionOrder(state, state.playerCountryId, action.fieldId, action.unitTypeId);
       } catch (error) {
@@ -196,7 +214,7 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       }
     }
     case "endTurn": {
-      if (state === null || state.aiPlan.length > 0) return state; // no restarting mid-AI-turn
+      if (state?.winner !== null || state.aiPlan.length > 0) return state; // no restarting mid-AI-turn, none after a win (S-07)
       // Spec §20 ordering: Faza 1 zasoby → Faza 2 produkcja → the AI acts.
       // Economy runs on the current turn so new-army ids stay deterministic.
       // The AI turn is STAGED (S-06): endTurn plans it into `aiPlan`; each
@@ -228,7 +246,7 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       };
     }
     case "aiStep": {
-      if (state === null || state.aiPlan.length === 0) return state;
+      if (state === null || state.aiPlan.length === 0 || state.winner !== null) return state; // finished game: frozen (S-07)
       const [action, ...rest] = state.aiPlan;
       let next = state;
       try {
@@ -260,6 +278,13 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
         throw error;
       }
       const aiTurnLog = [...state.aiTurnLog, aiLogEntry(state, action, next)];
+      const settled = withVictoryCheck(next);
+      if (settled.winner !== null) {
+        // The deciding capture happened mid-replay (S-07): the campaign is over,
+        // so skip the turn rollover and movement reset — aiTurnLog stays for the
+        // summary and aiPlan is cleared, which stops the replay driver by itself.
+        return { ...settled, aiTurnLog };
+      }
       if (rest.length === 0) {
         // The AI turn ends: reset movement (the FR-011 cap applies — S-05)
         // and roll over to the player's turn.

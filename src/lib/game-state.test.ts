@@ -480,4 +480,150 @@ describe("gameReducer", () => {
     expect(drained?.turn).toBe(2); // last action done: rollover + movement reset
     expect(drained?.productionQueues.moscow).toEqual([{ typeId: "infantry", remainingTurns: 1 }]);
   });
+
+  // --- S-07: victory conditions ---
+
+  it("a fresh game has no winner", () => {
+    expect(createInitialGameState("germany", "soviet").winner).toBeNull();
+    expect(createInitialGameState("soviet", "germany").winner).toBeNull();
+  });
+
+  it("moveArmy free-capturing the last enemy city sets the winner (S-07)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // Every Soviet-initial city except Brest is already German; undefended
+    // Brest is one free capture away — Lublin -> Bug river -> Brest costs 2.
+    const sovietCitiesHeld = ["vilnius", "minsk", "smolensk", "moscow", "kiev"];
+    const state: GameState = {
+      ...base,
+      armies: [
+        {
+          id: "G1",
+          owner: "germany" as const,
+          fieldId: "lublin-plains",
+          units: [{ id: "G1-u1", typeId: "tank" as const }],
+          movementPoints: 2,
+        },
+      ],
+      fieldOwners: {
+        ...base.fieldOwners,
+        ...Object.fromEntries(sovietCitiesHeld.map((fieldId) => [fieldId, "germany" as const])),
+      },
+    };
+
+    const next = gameReducer(state, { type: "moveArmy", armyId: "G1", targetFieldId: "brest" });
+    expect(next?.fieldOwners.brest).toBe("germany"); // the free capture (FR-009)
+    expect(next?.winner).toBe("germany");
+  });
+
+  it("attackArmy winning the last enemy city sets the winner (S-07)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // Same one-city-short setup, but Brest is defended — the deciding capture
+    // goes through a battle (8 tanks beat 1 infantry on the fixed seed).
+    const sovietCitiesHeld = ["vilnius", "minsk", "smolensk", "moscow", "kiev"];
+    const armies = [
+      {
+        id: "G1",
+        owner: "germany" as const,
+        fieldId: "warsaw",
+        units: Array.from({ length: 8 }, (_, index) => ({ id: `G1-u${index + 1}`, typeId: "tank" as const })),
+        movementPoints: 2,
+      },
+      {
+        id: "R1",
+        owner: "soviet" as const,
+        fieldId: "brest",
+        units: [{ id: "R1-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+    ];
+    const state: GameState = {
+      ...base,
+      armies,
+      fieldOwners: {
+        ...base.fieldOwners,
+        ...Object.fromEntries(sovietCitiesHeld.map((fieldId) => [fieldId, "germany" as const])),
+      },
+    };
+
+    const next = gameReducer(state, { type: "attackArmy", armyId: "G1", targetFieldId: "brest" });
+    expect(next?.fieldOwners.brest).toBe("germany");
+    expect(next?.lastBattleReportByCountry.germany?.attackerWins).toBe(true);
+    expect(next?.winner).toBe("germany");
+  });
+
+  it("aiStep setting the winner mid-replay stops the replay without a turn rollover (S-07)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // The USSR holds every German-initial city except Warsaw and attacks it
+    // with overwhelming force; one extra planned action must never execute.
+    const germanCitiesHeld = ["berlin", "poznan", "gdansk", "koenigsberg", "krakow"];
+    const armies = [
+      {
+        id: "R1",
+        owner: "soviet" as const,
+        fieldId: "bug-river",
+        units: Array.from({ length: 8 }, (_, i) => ({ id: `R1-u${i + 1}`, typeId: "tank" as const })),
+        movementPoints: 2,
+      },
+      {
+        id: "R2",
+        owner: "soviet" as const,
+        fieldId: "minsk",
+        units: [{ id: "R2-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+      {
+        id: "G1",
+        owner: "germany" as const,
+        fieldId: "warsaw",
+        units: [{ id: "G1-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+    ];
+    const state: GameState = {
+      ...base,
+      turn: 7,
+      armies,
+      fieldOwners: {
+        ...base.fieldOwners,
+        ...Object.fromEntries(germanCitiesHeld.map((fieldId) => [fieldId, "soviet" as const])),
+      },
+      aiPlan: [
+        { kind: "attack", armyId: "R1", targetFieldId: "warsaw" },
+        { kind: "move", armyId: "R2", targetFieldId: "orsha-plains" },
+      ],
+    };
+
+    const next = gameReducer(state, { type: "aiStep" });
+    if (next === null) throw new Error("next state is null");
+
+    expect(next.fieldOwners.warsaw).toBe("soviet");
+    expect(next.winner).toBe("soviet");
+    expect(next.aiPlan).toEqual([]); // the remaining planned action is dropped
+    expect(next.turn).toBe(7); // no rollover: the campaign ended mid-replay
+    expect(next.aiTurnLog.some((entry) => entry.kind === "battle")).toBe(true); // kept for the summary
+    // No movement reset: R2 keeps its spent points instead of a fresh allowance.
+    expect(next.armies.find((army) => army.id === "R2")?.movementPoints).toBe(1);
+  });
+
+  it("every gameplay action on a finished state is a no-op (S-07 freeze)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const finished: GameState = {
+      ...base,
+      winner: "germany",
+      aiPlan: [{ kind: "move", armyId: "R1", targetFieldId: "bug-river" }],
+    };
+
+    expect(gameReducer(finished, { type: "moveArmy", armyId: "G2", targetFieldId: "radom-plains" })).toBe(finished);
+    expect(gameReducer(finished, { type: "attackArmy", armyId: "G2", targetFieldId: "bug-river" })).toBe(finished);
+    expect(gameReducer(finished, { type: "orderUnit", fieldId: "berlin", unitTypeId: "infantry" })).toBe(finished);
+    expect(gameReducer(finished, { type: "endTurn" })).toBe(finished);
+    expect(gameReducer(finished, { type: "aiStep" })).toBe(finished);
+  });
+
+  it("resetGame returns null — the setup screen, even from a finished game", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const finished: GameState = { ...base, winner: "germany" };
+    expect(gameReducer(finished, { type: "resetGame" })).toBeNull();
+    expect(gameReducer(base, { type: "resetGame" })).toBeNull();
+  });
 });

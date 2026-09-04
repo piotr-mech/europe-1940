@@ -233,17 +233,17 @@ None — client-side state only, no persisted data yet. S-08 will persist `winne
 
 #### Automated
 
-- [x] 1.1 Unit tests pass: `npm test`
-- [x] 1.2 Linting passes: `npm run lint`
-- [x] 1.3 Production build passes: `npm run build`
+- [x] 1.1 Unit tests pass: `npm test` — 3ba487a
+- [x] 1.2 Linting passes: `npm run lint` — 3ba487a
+- [x] 1.3 Production build passes: `npm run build` — 3ba487a
 
 ### Phase 2: Reducer integration
 
 #### Automated
 
-- [ ] 2.1 Unit/integration tests pass: `npm test`
-- [ ] 2.2 Linting passes: `npm run lint`
-- [ ] 2.3 Production build passes: `npm run build`
+- [x] 2.1 Unit/integration tests pass: `npm test`
+- [x] 2.2 Linting passes: `npm run lint`
+- [x] 2.3 Production build passes: `npm run build`
 
 ### Phase 3: End-of-game UI
 

@@ -189,4 +189,6 @@ export interface GameState {
   aiPlan: AiAction[];
   /** What the AI did this turn (S-06), for the replay summary; cleared by the next endTurn. */
   aiTurnLog: AiTurnLogEntry[];
+  /** S-07: the campaign's winner once all enemy-initial cities are controlled by one side; null while in progress. */
+  winner: CountryId | null;
 }
