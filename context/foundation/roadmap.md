@@ -3,7 +3,7 @@ project: "EUROPE 1940"
 version: 1
 status: draft
 created: 2026-08-29
-updated: 2026-09-03
+updated: 2026-09-04
 prd_version: 1
 main_goal: low-complexity
 top_blocker: none
@@ -47,7 +47,7 @@ A simple, turn-based, board-game-style strategy game set in Europe 1940 — buil
 | S-03 | resources-production | collect city income each turn and order new units in cities                | S-01          | FR-002, FR-003, US-01          | done |
 | S-04 | battle-city-capture  | attack an enemy field, win an automatic battle, take ownership of a city   | S-02, S-03    | FR-007, FR-008, FR-009, US-01  | done |
 | S-05 | supply-lines         | see supply status and suffer the penalty when the line is cut              | S-04          | FR-010, FR-011, Business Logic | done |
-| S-06 | ai-opponent          | end the turn and face an AI opponent acting by rules                       | S-04          | FR-012                         | in-progress |
+| S-06 | ai-opponent          | end the turn and face an AI opponent acting by rules                       | S-04          | FR-012                         | done        |
 | S-07 | victory-conditions   | win or lose the campaign by controlling all enemy cities                   | S-06          | FR-013                         | proposed |
 | S-08 | save-resume          | interrupt a game and continue it later; survive a page refresh             | S-07          | FR-014, Guardrails             | proposed |
 
@@ -160,7 +160,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Rule-based AI must feel logical, not random (NFR: no unexplainable situations; AI turn without long waits); parallel to supply so the campaign loop advances on two fronts.
-- **Status:** in-progress
+- **Status:** done
 
 ### S-07: Victory and defeat
 
@@ -225,3 +225,4 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **S-03: user can collect city income each turn (money, steel, recruits) and order unit production in owned cities — cost, build time, per-city production slots, queue completing on later turns** — Archived 2026-09-02 → `context/archive/2026-09-01-resources-production/`. Lesson: —.
 - **S-04: user can attack an enemy field, win an automatic battle, and take ownership of a city** — Archived 2026-09-02 → `context/archive/2026-09-02-battle-city-capture/`. Lesson: —.
 - **S-05: user can see which armies are supplied (unbroken chain of own fields to an own city) and unsupplied armies suffer the flat penalty (movement max 1, attack/defense −25%) — enabling encirclement play** — Archived 2026-09-03 → `context/archive/2026-09-03-supply-lines/`. Lesson: —.
+- **S-06: user can end the turn and the AI acts by rules — priorities: defend threatened city, rescue unsupplied armies, attack per odds thresholds, group armies before strong targets, production proportions adjusted to situation** — Archived 2026-09-04 → `context/archive/2026-09-03-ai-opponent/`. Lesson: —.
