@@ -205,9 +205,25 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       // AI visibly finishes.
       const withIncome = collectIncome(state);
       const withProduction = advanceProduction(withIncome);
+      const aiPlan = planAiTurn(withProduction);
+      if (aiPlan.length === 0) {
+        // Nothing for the AI to do (no armies, nothing affordable — reachable
+        // in play before S-07's victory check): roll the turn over now
+        // instead of freezing on an empty queue (review F1).
+        return {
+          ...withProduction,
+          aiPlan: [],
+          aiTurnLog: [],
+          turn: withProduction.turn + 1,
+          armies: withProduction.armies.map((army) => ({
+            ...army,
+            movementPoints: movementAllowance(withProduction, army),
+          })),
+        };
+      }
       return {
         ...withProduction,
-        aiPlan: planAiTurn(withProduction),
+        aiPlan,
         aiTurnLog: [],
       };
     }

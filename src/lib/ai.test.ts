@@ -149,6 +149,41 @@ describe("planAiTurn — priority ladder (§26)", () => {
     expect(plan).toContainEqual({ kind: "move", armyId: "R2", targetFieldId: "vilnius" });
   });
 
+  it("P5: attacks a defended cutting field at >= 60% odds when no free move cut exists (review F2)", () => {
+    // The German army on Volhynia is supplied only through Lublin, and Lublin
+    // itself is held by a German garrison — the cutting field is defended.
+    // Soviet tanks on the Bug beat the garrison (14 vs 5: P = 1); heavily
+    // garrisoned Warsaw keeps priorities 3/4 from consuming the army.
+    const state = stateWith(
+      [
+        army("R1", "soviet", "bug-river", ["tank", "tank"]),
+        army("G1", "germany", "volhynia-plains", ["infantry"]),
+        army("G2", "germany", "lublin-plains", ["infantry"]),
+        army("G3", "germany", "warsaw", Array<UnitTypeId>(8).fill("infantry")),
+      ],
+      { "carpathians-mountains": "soviet", "volhynia-plains": "germany" },
+    );
+    const plan = moves(planAiTurn(state));
+    expect(plan).toContainEqual({ kind: "attack", armyId: "R1", targetFieldId: "lublin-plains" });
+  });
+
+  it("P6: no grouping while the objective itself is takeable at >= 40% (review F3)", () => {
+    // Soviet tanks on Soviet-held Oder plains face heavily-garrisoned Berlin
+    // (the best-value objective, adjacent, P well over 40%): the Minsk army
+    // does NOT advance — grouping is for an objective nobody can take.
+    const state = stateWith(
+      [
+        army("R1", "soviet", "oder-plains", ["tank", "tank", "tank", "tank", "tank", "tank", "tank", "tank"]),
+        army("R2", "soviet", "minsk", ["infantry", "infantry"]),
+        army("G1", "germany", "berlin", Array<UnitTypeId>(8).fill("infantry")),
+      ],
+      { "oder-plains": "soviet", poznan: "soviet" }, // keep the attacker supplied
+    );
+    const plan = planAiTurn(state);
+    expect(plan).toContainEqual({ kind: "attack", armyId: "R1", targetFieldId: "berlin" }); // P3 fires on the objective
+    expect(plan.some((action) => action.kind !== "order" && action.armyId === "R2")).toBe(false); // no grouping
+  });
+
   it("P5: moves onto the enemy field whose capture cuts an enemy supply line", () => {
     // A German army on German-held Volhynia is supplied only through Lublin
     // (Carpathians flipped Soviet; Kiev is Soviet by default). The Soviet tank

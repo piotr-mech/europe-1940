@@ -431,6 +431,35 @@ describe("gameReducer", () => {
     expect(next.turn).toBe(2); // rolled over after the drain
   });
 
+  it("an empty AI plan rolls the turn over immediately — no freeze, no income farm (review F1)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // The AI has no armies and no cities (all flipped to the player) and
+    // nothing to order: the plan is empty. Reachable in play before S-07.
+    const stripped: GameState = {
+      ...base,
+      armies: base.armies.filter((army) => army.owner === "germany"),
+      fieldOwners: Object.fromEntries(
+        Object.entries(base.fieldOwners).map(([fieldId, owner]) => [fieldId, owner === "soviet" ? "germany" : owner]),
+      ),
+      resources: { germany: base.resources.germany, soviet: { money: 0, steel: 0, recruits: 0 } },
+    };
+    const seeded = startingIncome("germany");
+    const allCitiesIncome = startingIncome("germany"); // + every former Soviet city, now German:
+    const flipped = startingIncome("soviet");
+
+    const next = gameReducer(stripped, { type: "endTurn" });
+    if (next === null) throw new Error("next state is null");
+
+    expect(next.aiPlan).toEqual([]); // nothing staged
+    expect(next.turn).toBe(2); // the turn rolled over immediately
+    expect(next.resources.germany).toEqual({
+      // seeded + every city's income, applied exactly once
+      money: seeded.money + allCitiesIncome.money + flipped.money,
+      steel: seeded.steel + allCitiesIncome.steel + flipped.steel,
+      recruits: seeded.recruits + allCitiesIncome.recruits + flipped.recruits,
+    });
+  });
+
   it("aiStep skips an illegal planned action without failing the turn", () => {
     const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const state: typeof base = {

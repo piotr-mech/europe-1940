@@ -144,6 +144,16 @@ function attackPower(state: GameState, army: Army, targetField: MapField): numbe
   return attackerStrength(army, targetField, !isSupplied(state, army)).total;
 }
 
+/** The modified defense strength of every enemy army standing on `fieldId`. */
+function defenseAt(state: GameState, ai: CountryId, fieldId: string): number {
+  const field = getField(fieldId);
+  const defenders = state.armies.filter((candidate) => candidate.owner !== ai && candidate.fieldId === fieldId);
+  const unsuppliedDefenders = new Set(
+    defenders.filter((defender) => !isSupplied(state, defender)).map((defender) => defender.id),
+  );
+  return defenderStrength(defenders, field, unsuppliedDefenders).total;
+}
+
 /** The garrison's modified defense strength on its own field (city bonus included). */
 function garrisonPower(state: GameState, aiCountry: CountryId, fieldId: string): number {
   const field = getField(fieldId);
@@ -205,6 +215,9 @@ export function planAiTurn(state: GameState): AiPlan {
   const values = new Map(enemyCities.map((city) => [city.id, cityTargetValue(state, ai, city.id)]));
   const medianValue = median([...values.values()]);
   const candidates = attackCandidates(state, ai, acted);
+  // Snapshot before the P3/P4 picks splice the list: the grouping gate asks
+  // whether the best-value objective is takeable at all this turn.
+  const initialCandidates = [...candidates];
   const bestAttack = (minProb: number, importantOnly: boolean): AttackCandidate | null =>
     candidates
       .filter((c) => c.probability >= minProb && (!importantOnly || (values.get(c.targetFieldId) ?? 0) > medianValue))
@@ -227,7 +240,10 @@ export function planAiTurn(state: GameState): AiPlan {
   }
 
   // --- P5: cut the enemy's supply by taking a field the line runs through ---
-  const cut = state.armies
+  // A free move onto an empty cutting field when one is reachable; otherwise
+  // an attack (P >= 60%) on a defended cutting field — fight through the
+  // guard to sever the line (the plan's P5 attack branch, review F2).
+  const cutMove = state.armies
     .filter((army) => army.owner === ai && !acted.has(army.id))
     .flatMap((army) =>
       [...reachableFields(state, army.id).keys()]
@@ -236,14 +252,44 @@ export function planAiTurn(state: GameState): AiPlan {
     )
     .sort((a, b) => a.targetFieldId.localeCompare(b.targetFieldId) || a.armyId.localeCompare(b.armyId))
     .at(0);
-  if (cut !== undefined) {
-    actions.push({ kind: "move", armyId: cut.armyId, targetFieldId: cut.targetFieldId });
-    acted.add(cut.armyId);
+  const cutAttack =
+    cutMove === undefined
+      ? state.armies
+          .filter((army) => army.owner === ai && !acted.has(army.id))
+          .flatMap((army) =>
+            [...attackFields(state, army.id).keys()]
+              .filter((fieldId) => enemy(state.fieldOwners[fieldId]) && cutsEnemySupply(state, fieldId, ai))
+              .map((fieldId) => ({
+                armyId: army.id,
+                targetFieldId: fieldId,
+                probability: aiWinProbability(
+                  attackPower(state, army, getField(fieldId)),
+                  defenseAt(state, ai, fieldId),
+                ),
+              })),
+          )
+          .filter((candidate) => candidate.probability >= ATTACK_PROB_FREE)
+          .sort((a, b) => b.probability - a.probability || a.targetFieldId.localeCompare(b.targetFieldId))
+          .at(0)
+      : undefined;
+  if (cutMove !== undefined) {
+    actions.push({ kind: "move", armyId: cutMove.armyId, targetFieldId: cutMove.targetFieldId });
+    acted.add(cutMove.armyId);
+  } else if (cutAttack !== undefined) {
+    actions.push({ kind: "attack", armyId: cutAttack.armyId, targetFieldId: cutAttack.targetFieldId });
+    acted.add(cutAttack.armyId);
   }
 
-  // --- P6: group — step remaining armies toward the best-value enemy city ---
+  // --- P6: group — approach the best-value enemy city, but only while nobody
+  // can take that objective this turn (its best candidate is under 40%) ---
   const objective = [...values.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).at(0)?.[0];
-  if (objective !== undefined) {
+  const objectiveProbability =
+    objective === undefined
+      ? 0
+      : initialCandidates
+          .filter((candidate) => candidate.targetFieldId === objective)
+          .reduce((max, candidate) => Math.max(max, candidate.probability), 0);
+  if (objective !== undefined && objectiveProbability < ATTACK_PROB_IMPORTANT) {
     for (const army of state.armies) {
       if (army.owner !== ai || acted.has(army.id)) continue;
       const step = stepToward(state, army, objective);
