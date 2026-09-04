@@ -266,18 +266,18 @@ Planning is scoring over ≤29 fields and ≤ a handful of armies — microsecon
 
 #### Automated
 
-- [x] 2.1 `npm test` — staged turn suite green (deterministic full turn, per-side report slots, aiStep drain ends with turn+1, illegal action skipped)
-- [x] 2.2 `npm run lint`
-- [x] 2.3 `npm run build`
+- [x] 2.1 `npm test` — staged turn suite green (deterministic full turn, per-side report slots, aiStep drain ends with turn+1, illegal action skipped) — 71b87d0
+- [x] 2.2 `npm run lint` — 71b87d0
+- [x] 2.3 `npm run build` — 71b87d0
 
 ### Phase 3: Sequential replay UI
 
 #### Automated
 
-- [ ] 3.1 `npm test`
-- [ ] 3.2 `npm run lint`
-- [ ] 3.3 `npm run build`
+- [x] 3.1 `npm test`
+- [x] 3.2 `npm run lint`
+- [x] 3.3 `npm run build`
 
 #### Manual
 
-- [ ] 3.4 Full AI turn on `/game`: sequential visible actions, popup queue, blocked input, panel summary, clean player turn afterwards
+- [x] 3.4 Full AI turn on `/game`: sequential visible actions, popup queue, blocked input, panel summary, clean player turn afterwards

@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 
 import { BattlePopup } from "@/components/game/BattlePopup";
 import { BoardMap } from "@/components/game/BoardMap";
@@ -8,6 +8,9 @@ import { gameReducer, isDomainError } from "@/lib/game-state";
 import { attackFields, reachableFields } from "@/lib/movement";
 import { cn } from "@/lib/utils";
 import type { BattleReport, Country, CountryId, GameState, ResourceId } from "@/types";
+
+/** One AI action per tick (S-06): the deliberate presentation pause (NFR: no long waits). */
+const AI_STEP_INTERVAL_MS = 500;
 
 interface CountryOptionProps {
   country: Country;
@@ -59,6 +62,31 @@ export function GameScreen() {
   const closeBattlePopup = useCallback((report: BattleReport) => {
     setDismissedReport(report);
   }, []);
+  // The AI's battle popup (S-06), dismissed separately from the player's.
+  const [dismissedAiReport, setDismissedAiReport] = useState<BattleReport | null>(null);
+  const closeAiBattlePopup = useCallback((report: BattleReport) => {
+    setDismissedAiReport(report);
+  }, []);
+
+  // Derived before the setup-screen split so the replay driver hook sits at
+  // the top level (hooks cannot follow a conditional return).
+  const playerReport = state === null ? null : state.lastBattleReportByCountry[state.playerCountryId];
+  const aiReport = state === null ? null : state.lastBattleReportByCountry[state.aiCountryId];
+  const battlePopup = playerReport !== null && playerReport !== dismissedReport ? playerReport : null;
+  const aiBattlePopup = aiReport !== null && aiReport !== dismissedAiReport ? aiReport : null;
+  const aiTurnActive = state !== null && state.aiPlan.length > 0;
+
+  // The replay driver (S-06): one staged AI action per interval while the
+  // queue is non-empty; pauses while either battle popup is open.
+  useEffect(() => {
+    if (!aiTurnActive || battlePopup !== null || aiBattlePopup !== null) return;
+    const timer = setTimeout(() => {
+      dispatch({ type: "aiStep" });
+    }, AI_STEP_INTERVAL_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [state, battlePopup, aiBattlePopup, aiTurnActive, dispatch]);
 
   // Picking a side in one group swaps the other, so the two can never be equal.
   const pickPlayerCountry = (id: CountryId): void => {
@@ -121,22 +149,19 @@ export function GameScreen() {
 
   const playerCountry = data.countries.find((country) => country.id === state.playerCountryId);
   const aiCountry = data.countries.find((country) => country.id === state.aiCountryId);
-  // The player's report slot (S-06): AI battles never clobber it — they
-  // surface through the replay (Phase 3).
-  const playerReport = state.lastBattleReportByCountry[state.playerCountryId];
-  const battlePopup = playerReport !== null && playerReport !== dismissedReport ? playerReport : null;
 
   // The selected army's reach this turn (selection is UI state, not game state).
   const reachable = computeReach(state, selectedArmyId);
   // Enemy-occupied fields the selected army can attack (S-04, FR-007).
   const attackTargets = computeAttackTargets(state, selectedArmyId);
   const attack = (targetFieldId: string): void => {
-    if (selectedArmyId === null) return;
+    if (selectedArmyId === null || aiTurnActive) return;
     dispatch({ type: "attackArmy", armyId: selectedArmyId, targetFieldId });
     setSelectedArmyId(null);
     setSelectedSubject(null); // the battle report takes the panel (S-04)
   };
   const onArmyClick = (armyId: string): void => {
+    if (aiTurnActive) return; // the player cannot act inside the AI's turn
     const army = state.armies.find((candidate) => candidate.id === armyId);
     // Only the player's own armies create a movement selection.
     if (army?.owner !== state.playerCountryId) {
@@ -156,6 +181,7 @@ export function GameScreen() {
     );
   };
   const onFieldClick = (fieldId: string | null): void => {
+    if (aiTurnActive) return; // the player cannot act inside the AI's turn
     if (fieldId === null) {
       setSelectedArmyId(null);
       setSelectedSubject(null);
@@ -188,6 +214,7 @@ export function GameScreen() {
         <p className="text-sm text-slate-600">
           Tura {state.turn} · Grasz: {playerCountry?.name ?? state.playerCountryId} · AI:{" "}
           {aiCountry?.name ?? state.aiCountryId}
+          {aiTurnActive ? " · Ruch AI…" : ""}
         </p>
         {/* Treasury HUD (FR-002): the player's resources at all times. */}
         <p className="text-sm font-semibold text-slate-700" aria-label="Skarbiec">
@@ -200,14 +227,15 @@ export function GameScreen() {
         </p>
         <button
           type="button"
+          disabled={aiTurnActive}
           onClick={() => {
             dispatch({ type: "endTurn" });
             setSelectedArmyId(null);
             setSelectedSubject(null);
           }}
-          className="ml-auto rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+          className="ml-auto rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Koniec tury
+          {aiTurnActive ? "Tura AI…" : "Koniec tury"}
         </button>
       </header>
       <div className="flex items-start gap-4">
@@ -221,11 +249,16 @@ export function GameScreen() {
             onFieldClick={onFieldClick}
           />
         </div>
-        <DetailPanel state={state} selected={selectedSubject} dispatch={dispatch} />
+        <DetailPanel state={state} selected={selectedSubject} dispatch={dispatch} ordersDisabled={aiTurnActive} />
       </div>
       {/* Keyed by the battle seed (advances every battle) so a report that changes mid-playback remounts the popup with a fresh counter (review F2). */}
       {battlePopup !== null && (
-        <BattlePopup key={state.rngSeed} state={state} report={battlePopup} onClose={closeBattlePopup} />
+        <BattlePopup key={`player-${state.rngSeed}`} state={state} report={battlePopup} onClose={closeBattlePopup} />
+      )}
+      {/* AI battles (S-06): the same staged popup, driven by the replay — the
+          driver pauses until it closes. */}
+      {aiBattlePopup !== null && aiBattlePopup !== battlePopup && (
+        <BattlePopup key={`ai-${state.rngSeed}`} state={state} report={aiBattlePopup} onClose={closeAiBattlePopup} />
       )}
     </main>
   );

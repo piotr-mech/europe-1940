@@ -182,7 +182,8 @@ export function planAiTurn(state: GameState): AiPlan {
     }
     const defender = state.armies
       .filter((army) => army.owner === ai && !acted.has(army.id) && reachableFields(state, army.id).has(city.id))
-      .sort((a, b) => b.units.length - a.units.length || a.id.localeCompare(b.id))[0];
+      .sort((a, b) => b.units.length - a.units.length || a.id.localeCompare(b.id))
+      .at(0);
     if (defender !== undefined) {
       actions.push({ kind: "move", armyId: defender.id, targetFieldId: city.id });
       acted.add(defender.id);
@@ -233,14 +234,15 @@ export function planAiTurn(state: GameState): AiPlan {
         .filter((fieldId) => enemy(state.fieldOwners[fieldId]) && cutsEnemySupply(state, fieldId, ai))
         .map((fieldId) => ({ armyId: army.id, targetFieldId: fieldId })),
     )
-    .sort((a, b) => a.targetFieldId.localeCompare(b.targetFieldId) || a.armyId.localeCompare(b.armyId))[0];
+    .sort((a, b) => a.targetFieldId.localeCompare(b.targetFieldId) || a.armyId.localeCompare(b.armyId))
+    .at(0);
   if (cut !== undefined) {
     actions.push({ kind: "move", armyId: cut.armyId, targetFieldId: cut.targetFieldId });
     acted.add(cut.armyId);
   }
 
   // --- P6: group — step remaining armies toward the best-value enemy city ---
-  const objective = [...values.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0];
+  const objective = [...values.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).at(0)?.[0];
   if (objective !== undefined) {
     for (const army of state.armies) {
       if (army.owner !== ai || acted.has(army.id)) continue;
@@ -302,7 +304,8 @@ function stepTowardOwnCity(state: GameState, army: Army): string | null {
   const ownCities = MAP_FIELDS.filter((field) => field.city !== null && state.fieldOwners[field.id] === army.owner);
   const target = ownCities
     .map((city) => ({ id: city.id, distance: movementDistance(army.fieldId, city.id) }))
-    .sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id))[0];
+    .sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id))
+    .at(0);
   if (target === undefined) return null;
   return stepToward(state, army, target.id);
 }

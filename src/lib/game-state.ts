@@ -9,7 +9,6 @@ import type {
   AiAction,
   AiTurnLogEntry,
   Army,
-  BattleReport,
   CountryId,
   GameState,
   ResourceBag,

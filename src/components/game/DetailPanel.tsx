@@ -17,6 +17,8 @@ interface DetailPanelProps {
   selected: SelectedSubject | null;
   /** GameScreen owns the reducer; the ordering section dispatches through it. */
   dispatch: React.Dispatch<GameAction>;
+  /** Ordering is blocked while the AI's turn replays (S-06). */
+  ordersDisabled?: boolean;
 }
 
 const TERRAIN_LABELS: Record<TerrainType, string> = {
@@ -55,7 +57,7 @@ function StatRow({ label, value }: { label: string; value: string }) {
  * Side panel with the selected subject's details (FR-006): city stats, terrain
  * effects, or army composition. Raw Tailwind, slate palette — no dependencies.
  */
-export function DetailPanel({ state, selected, dispatch }: DetailPanelProps) {
+export function DetailPanel({ state, selected, dispatch, ordersDisabled = false }: DetailPanelProps) {
   const data = getGameData();
   const fieldById = new Map(data.fields.map((field) => [field.id, field]));
   const countryById = new Map(data.countries.map((country) => [country.id, country]));
@@ -68,6 +70,8 @@ export function DetailPanel({ state, selected, dispatch }: DetailPanelProps) {
     body =
       playerReport != null ? (
         <BattleReportView state={state} report={playerReport} />
+      ) : state.aiTurnLog.length > 0 ? (
+        <AiTurnSummaryView state={state} />
       ) : (
         <p className="text-sm text-slate-500">Kliknij miasto, pole lub armię na mapie, aby zobaczyć szczegóły.</p>
       );
@@ -157,7 +161,7 @@ export function DetailPanel({ state, selected, dispatch }: DetailPanelProps) {
                 ))}
               </dl>
               {state.fieldOwners[field.id] === state.playerCountryId ? (
-                <ProductionSection state={state} fieldId={field.id} dispatch={dispatch} />
+                <ProductionSection state={state} fieldId={field.id} dispatch={dispatch} disabled={ordersDisabled} />
               ) : null}
             </>
           ) : terrain !== null ? (
@@ -241,10 +245,42 @@ function BattleReportView({ state, report }: BattleReportViewProps) {
   );
 }
 
+/**
+ * The AI turn's summary (S-06, FR-012 NFR): what the opponent did this turn,
+ * in plain Polish — shown after the replay finishes, until the player's next
+ * selection replaces it.
+ */
+function AiTurnSummaryView({ state }: { state: GameState }) {
+  const data = getGameData();
+  const fieldName = (fieldId: string): string => data.fields.find((field) => field.id === fieldId)?.name ?? fieldId;
+  const unitName = (typeId: UnitTypeId): string => data.unitTypes.find((t) => t.id === typeId)?.name ?? typeId;
+
+  return (
+    <div className="grid gap-3">
+      <header>
+        <h2 className="text-lg font-bold">Tura AI</h2>
+        <p className="text-xs text-slate-500">Podsumowanie ruchów przeciwnika</p>
+      </header>
+      <ol className="grid gap-1.5 text-sm">
+        {state.aiTurnLog.map((entry, index) => (
+          <li key={index} className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700">
+            {entry.kind === "move"
+              ? `Armia ${entry.armyId}: ${fieldName(entry.fromFieldId)} → ${fieldName(entry.toFieldId)}${entry.capturedCity ? " — zdobyto miasto" : ""}`
+              : entry.kind === "battle"
+                ? `Bitwa o ${fieldName(entry.report.fieldId)}: ${entry.report.attackerWins ? "zwycięstwo AI" : "porażka AI"} · straty ${entry.report.attackerLosses} : ${entry.report.defenderLosses}`
+                : `Zamówienie: ${unitName(entry.unitTypeId)} — ${fieldName(entry.fieldId)}`}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 interface ProductionSectionProps {
   state: GameState;
   fieldId: string;
   dispatch: React.Dispatch<GameAction>;
+  disabled?: boolean;
 }
 
 /**
@@ -253,7 +289,7 @@ interface ProductionSectionProps {
  * city's current queue. Buttons offer only legal orders — no slot or no
  * treasury disables them; the reducer backstop covers the rest.
  */
-function ProductionSection({ state, fieldId, dispatch }: ProductionSectionProps) {
+function ProductionSection({ state, fieldId, dispatch, disabled = false }: ProductionSectionProps) {
   const data = getGameData();
   const unitTypeById = new Map(data.unitTypes.map((unitType) => [unitType.id, unitType]));
   const countryId = state.playerCountryId;
@@ -286,7 +322,7 @@ function ProductionSection({ state, fieldId, dispatch }: ProductionSectionProps)
               </span>
               <button
                 type="button"
-                disabled={freeSlots === 0 || !affordable}
+                disabled={disabled || freeSlots === 0 || !affordable}
                 onClick={() => {
                   dispatch({ type: "orderUnit", fieldId, unitTypeId: unitType.id });
                 }}
