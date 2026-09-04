@@ -274,10 +274,10 @@ Planning is scoring over ≤29 fields and ≤ a handful of armies — microsecon
 
 #### Automated
 
-- [x] 3.1 `npm test`
-- [x] 3.2 `npm run lint`
-- [x] 3.3 `npm run build`
+- [x] 3.1 `npm test` — 4f3f10f
+- [x] 3.2 `npm run lint` — 4f3f10f
+- [x] 3.3 `npm run build` — 4f3f10f
 
 #### Manual
 
-- [x] 3.4 Full AI turn on `/game`: sequential visible actions, popup queue, blocked input, panel summary, clean player turn afterwards
+- [x] 3.4 Full AI turn on `/game`: sequential visible actions, popup queue, blocked input, panel summary, clean player turn afterwards — 4f3f10f
