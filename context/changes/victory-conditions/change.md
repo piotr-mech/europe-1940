@@ -1,7 +1,7 @@
 ---
 change_id: victory-conditions
 title: Victory conditions
-status: implemented
+status: impl_reviewed
 created: 2026-09-04
 updated: 2026-09-05
 archived_at: null
