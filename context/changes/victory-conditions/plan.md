@@ -241,21 +241,21 @@ None — client-side state only, no persisted data yet. S-08 will persist `winne
 
 #### Automated
 
-- [x] 2.1 Unit/integration tests pass: `npm test`
-- [x] 2.2 Linting passes: `npm run lint`
-- [x] 2.3 Production build passes: `npm run build`
+- [x] 2.1 Unit/integration tests pass: `npm test` — 7eb638a
+- [x] 2.2 Linting passes: `npm run lint` — 7eb638a
+- [x] 2.3 Production build passes: `npm run build` — 7eb638a
 
 ### Phase 3: End-of-game UI
 
 #### Automated
 
-- [ ] 3.1 Linting passes: `npm run lint`
-- [ ] 3.2 Production build passes: `npm run build`
+- [x] 3.1 Linting passes: `npm run lint`
+- [x] 3.2 Production build passes: `npm run build`
 
 #### Manual
 
-- [ ] 3.3 Victory path: last battle popup plays first, then victory overlay with turn count and city tally
-- [ ] 3.4 Overlay dismissal leaves a browsable read-only map; `Nowa gra` in header
-- [ ] 3.5 Defeat path: red defeat overlay after AI's deciding battle popup
-- [ ] 3.6 `Nowa gra` returns to a functional setup screen; new game plays normally
-- [ ] 3.7 Mid-replay stop: remaining AI steps skipped, turn counter frozen
+- [x] 3.3 Victory path: last battle popup plays first, then victory overlay with turn count and city tally
+- [x] 3.4 Overlay dismissal leaves a browsable read-only map; `Nowa gra` in header
+- [x] 3.5 Defeat path: red defeat overlay after AI's deciding battle popup
+- [x] 3.6 `Nowa gra` returns to a functional setup screen; new game plays normally
+- [x] 3.7 Mid-replay stop: remaining AI steps skipped, turn counter frozen

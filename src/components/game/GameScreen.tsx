@@ -3,6 +3,7 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import { BattlePopup } from "@/components/game/BattlePopup";
 import { BoardMap } from "@/components/game/BoardMap";
 import { DetailPanel, RESOURCE_LABELS, type SelectedSubject } from "@/components/game/DetailPanel";
+import { VictoryOverlay } from "@/components/game/VictoryOverlay";
 import { getGameData } from "@/lib/game-data";
 import { gameReducer, isDomainError } from "@/lib/game-state";
 import { attackFields, reachableFields } from "@/lib/movement";
@@ -67,6 +68,9 @@ export function GameScreen() {
   const closeAiBattlePopup = useCallback((report: BattleReport) => {
     setDismissedAiReport(report);
   }, []);
+  // The victory overlay (S-07) is derived like the popups; dismissal ("Zobacz
+  // mapę") leaves the read-only final map until a new game starts.
+  const [victoryDismissed, setVictoryDismissed] = useState(false);
 
   // Derived before the setup-screen split so the replay driver hook sits at
   // the top level (hooks cannot follow a conditional return).
@@ -75,6 +79,10 @@ export function GameScreen() {
   const battlePopup = playerReport !== null && playerReport !== dismissedReport ? playerReport : null;
   const aiBattlePopup = aiReport !== null && aiReport !== dismissedAiReport ? aiReport : null;
   const aiTurnActive = state !== null && state.aiPlan.length > 0;
+  // The campaign's end (S-07): the overlay waits for any deciding battle
+  // popup to play out first (popup-before-overlay ordering).
+  const gameOver = state !== null && state.winner !== null;
+  const showVictory = gameOver && !victoryDismissed && battlePopup === null && aiBattlePopup === null;
 
   // The replay driver (S-06): one staged AI action per interval while the
   // queue is non-empty; pauses while either battle popup is open.
@@ -138,6 +146,7 @@ export function GameScreen() {
             // The battle PRNG seed comes from the UI (Date.now) so each
             // campaign rolls differently while the reducer stays pure (S-04).
             dispatch({ type: "startGame", playerCountryId, aiCountryId, seed: Date.now() });
+            setVictoryDismissed(false); // a fresh campaign starts overlay-free (S-07)
           }}
           className="w-full rounded-lg bg-slate-800 px-4 py-3 font-semibold text-white transition-colors hover:bg-slate-700"
         >
@@ -155,13 +164,13 @@ export function GameScreen() {
   // Enemy-occupied fields the selected army can attack (S-04, FR-007).
   const attackTargets = computeAttackTargets(state, selectedArmyId);
   const attack = (targetFieldId: string): void => {
-    if (selectedArmyId === null || aiTurnActive) return;
+    if (selectedArmyId === null || aiTurnActive || gameOver) return;
     dispatch({ type: "attackArmy", armyId: selectedArmyId, targetFieldId });
     setSelectedArmyId(null);
     setSelectedSubject(null); // the battle report takes the panel (S-04)
   };
   const onArmyClick = (armyId: string): void => {
-    if (aiTurnActive) return; // the player cannot act inside the AI's turn
+    if (aiTurnActive || gameOver) return; // no acting inside the AI's turn or after the campaign ended (S-07)
     const army = state.armies.find((candidate) => candidate.id === armyId);
     // Only the player's own armies create a movement selection.
     if (army?.owner !== state.playerCountryId) {
@@ -181,7 +190,7 @@ export function GameScreen() {
     );
   };
   const onFieldClick = (fieldId: string | null): void => {
-    if (aiTurnActive) return; // the player cannot act inside the AI's turn
+    if (aiTurnActive || gameOver) return; // no acting inside the AI's turn or after the campaign ended (S-07)
     if (fieldId === null) {
       setSelectedArmyId(null);
       setSelectedSubject(null);
@@ -225,18 +234,34 @@ export function GameScreen() {
             </span>
           ))}
         </p>
-        <button
-          type="button"
-          disabled={aiTurnActive}
-          onClick={() => {
-            dispatch({ type: "endTurn" });
-            setSelectedArmyId(null);
-            setSelectedSubject(null);
-          }}
-          className="ml-auto rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {aiTurnActive ? "Tura AI…" : "Koniec tury"}
-        </button>
+        {gameOver ? (
+          // The campaign ended (S-07): the header's only action is a fresh game.
+          <button
+            type="button"
+            onClick={() => {
+              dispatch({ type: "resetGame" });
+              setSelectedArmyId(null);
+              setSelectedSubject(null);
+              setVictoryDismissed(false);
+            }}
+            className="ml-auto rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+          >
+            Nowa gra
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={aiTurnActive}
+            onClick={() => {
+              dispatch({ type: "endTurn" });
+              setSelectedArmyId(null);
+              setSelectedSubject(null);
+            }}
+            className="ml-auto rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {aiTurnActive ? "Tura AI…" : "Koniec tury"}
+          </button>
+        )}
       </header>
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
@@ -249,7 +274,12 @@ export function GameScreen() {
             onFieldClick={onFieldClick}
           />
         </div>
-        <DetailPanel state={state} selected={selectedSubject} dispatch={dispatch} ordersDisabled={aiTurnActive} />
+        <DetailPanel
+          state={state}
+          selected={selectedSubject}
+          dispatch={dispatch}
+          ordersDisabled={aiTurnActive || gameOver}
+        />
       </div>
       {/* Keyed by the battle seed (advances every battle) so a report that changes mid-playback remounts the popup with a fresh counter (review F2). */}
       {battlePopup !== null && (
@@ -259,6 +289,22 @@ export function GameScreen() {
           driver pauses until it closes. */}
       {aiBattlePopup !== null && aiBattlePopup !== battlePopup && (
         <BattlePopup key={`ai-${state.rngSeed}`} state={state} report={aiBattlePopup} onClose={closeAiBattlePopup} />
+      )}
+      {/* The campaign's end (S-07): shown once the deciding battle popup has
+          closed — the overlay is the last word on the campaign. */}
+      {showVictory && (
+        <VictoryOverlay
+          state={state}
+          onDismiss={() => {
+            setVictoryDismissed(true);
+          }}
+          onNewGame={() => {
+            dispatch({ type: "resetGame" });
+            setSelectedArmyId(null);
+            setSelectedSubject(null);
+            setVictoryDismissed(false);
+          }}
+        />
       )}
     </main>
   );
