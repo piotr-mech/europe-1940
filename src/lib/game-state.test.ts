@@ -4,10 +4,21 @@ import { getGameData } from "@/lib/game-data";
 import { createInitialGameState, dominantUnitType, gameReducer } from "@/lib/game-state";
 import { armySpeed } from "@/lib/movement";
 import { applyProductionOrder } from "@/lib/production";
-import type { Army, CountryId, ResourceBag } from "@/types";
+import type { Army, CountryId, GameState, ResourceBag } from "@/types";
 
 const gameData = getGameData();
 const COUNTRY_IDS: readonly CountryId[] = ["germany", "soviet"];
+
+/** Applies aiStep until the AI turn drains — the player's turn has begun. */
+function drainAiTurn(state: GameState): GameState {
+  let current = state;
+  while (current.aiPlan.length > 0) {
+    const next = gameReducer(current, { type: "aiStep" });
+    if (next === null) break;
+    current = next;
+  }
+  return current;
+}
 
 /** Summed city income of the fields a country initially owns. */
 function startingIncome(countryId: CountryId): ResourceBag {
@@ -162,15 +173,34 @@ describe("gameReducer", () => {
     expect(moved?.movementPoints).toBe(0);
   });
 
-  it("endTurn advances the turn and restores every army's movement", () => {
+  it("endTurn plans the AI turn; the turn rolls over only when it drains (S-06)", () => {
     const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const moved = gameReducer(state, { type: "moveArmy", armyId: "G2", targetFieldId: "radom-plains" });
-    const next = gameReducer(moved, { type: "endTurn" });
+    const planned = gameReducer(moved, { type: "endTurn" });
+    if (planned === null) throw new Error("planned state is null");
 
-    expect(next?.turn).toBe(2);
-    for (const army of next?.armies ?? []) {
+    expect(planned.turn).toBe(1); // still the AI's turn
+    expect(planned.aiPlan.length).toBeGreaterThan(0);
+
+    const next = drainAiTurn(planned);
+    expect(next.turn).toBe(2);
+    for (const army of next.armies) {
       expect(army.movementPoints).toBe(armySpeed(army)); // all supplied: full speed
     }
+  });
+
+  it("the staged AI turn is deterministic end to end", () => {
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const planned = gameReducer(state, { type: "endTurn" });
+    if (planned === null) throw new Error("planned state is null");
+    expect(drainAiTurn(planned)).toEqual(drainAiTurn(planned));
+  });
+
+  it("endTurn during an AI turn is ignored (no restarting mid-turn)", () => {
+    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const planned = gameReducer(state, { type: "endTurn" });
+    if (planned === null) throw new Error("planned state is null");
+    expect(gameReducer(planned, { type: "endTurn" })).toBe(planned);
   });
 
   it("endTurn caps an unsupplied army's movement at 1 (FR-011, S-05)", () => {
@@ -203,7 +233,8 @@ describe("gameReducer", () => {
       },
     };
 
-    const next = gameReducer(cut, { type: "endTurn" });
+    const planned = gameReducer(cut, { type: "endTurn" });
+    const next = planned === null ? null : drainAiTurn(planned);
     expect(next?.armies.find((army) => army.id === "G1")?.movementPoints).toBe(1); // capped from 2
     expect(next?.armies.find((army) => army.id === "R1")?.movementPoints).toBe(2); // supplied: full speed
   });
@@ -224,7 +255,8 @@ describe("gameReducer", () => {
   it("an infantry order (buildTime 1) completes on one endTurn — unit on the map on turn N+1", () => {
     const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const ordered = applyProductionOrder(state, "germany", "berlin", "infantry");
-    const next = gameReducer(ordered, { type: "endTurn" });
+    const planned = gameReducer(ordered, { type: "endTurn" });
+    const next = planned === null ? null : drainAiTurn(planned);
 
     expect(next?.turn).toBe(2);
     // Queue emptied out and dropped from the record.
@@ -238,12 +270,14 @@ describe("gameReducer", () => {
   it("a tank order (buildTime 2) stays queued after one endTurn and completes on the second", () => {
     const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const ordered = applyProductionOrder(state, "germany", "berlin", "tank");
-    const turn2 = gameReducer(ordered, { type: "endTurn" });
+    const planned2 = gameReducer(ordered, { type: "endTurn" });
+    const turn2 = planned2 === null ? null : drainAiTurn(planned2);
 
     expect(turn2?.productionQueues.berlin).toEqual([{ typeId: "tank", remainingTurns: 1 }]);
     expect(turn2?.armies.find((army) => army.id === "G1")?.units.length).toBe(4);
 
-    const turn3 = gameReducer(turn2, { type: "endTurn" });
+    const planned3 = turn2 === null ? null : gameReducer(turn2, { type: "endTurn" });
+    const turn3 = planned3 === null ? null : drainAiTurn(planned3);
     expect(turn3?.productionQueues.berlin).toBeUndefined();
     expect(turn3?.armies.find((army) => army.id === "G1")?.units.at(-1)?.typeId).toBe("tank");
   });
@@ -304,14 +338,15 @@ describe("gameReducer", () => {
         movementPoints: 1,
       },
     ];
-    const state = { ...base, armies, rngSeed: 1, lastBattleReport: null };
+    const state = { ...base, armies, rngSeed: 1 };
 
     const next = gameReducer(state, { type: "attackArmy", armyId: "G1", targetFieldId: "brest" });
 
     expect(next?.fieldOwners.brest).toBe("germany"); // captured (FR-009)
     expect(next?.armies.some((army) => army.id === "R1")).toBe(false); // defender destroyed
-    expect(next?.lastBattleReport?.attackerWins).toBe(true);
-    expect(next?.lastBattleReport?.fieldId).toBe("brest");
+    expect(next?.lastBattleReportByCountry.germany?.attackerWins).toBe(true); // the player's slot
+    expect(next?.lastBattleReportByCountry.germany?.fieldId).toBe("brest");
+    expect(next?.lastBattleReportByCountry.soviet).toBeNull(); // the AI's slot untouched
     expect(next?.rngSeed).not.toBe(1); // the PRNG advanced
   });
 
@@ -333,7 +368,7 @@ describe("gameReducer", () => {
         movementPoints: 1,
       },
     ];
-    const state = { ...base, armies, rngSeed: 1, lastBattleReport: null };
+    const state = { ...base, armies, rngSeed: 1 };
 
     // No enemy army on the field (Radom Plains is empty): that path is a move.
     expect(gameReducer(state, { type: "attackArmy", armyId: "G1", targetFieldId: "radom-plains" })).toBe(state);
@@ -357,7 +392,63 @@ describe("gameReducer", () => {
         movementPoints: 1,
       },
     ];
-    const state = { ...base, armies, rngSeed: 1, lastBattleReport: null };
+    const state = { ...base, armies, rngSeed: 1 };
     expect(() => gameReducer(state, { type: "attackArmy", armyId: "G1", targetFieldId: "brest" })).toThrow();
+  });
+
+  it("the AI turn executes step by step; an AI battle writes the AI's slot only (S-06)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // Soviet tanks on the Bug, one German defender in Warsaw: the planner's
+    // priority 3 attacks Warsaw (P = 1).
+    const armies = [
+      {
+        id: "R1",
+        owner: "soviet" as const,
+        fieldId: "bug-river",
+        units: Array.from({ length: 8 }, (_, i) => ({ id: `R1-u${i + 1}`, typeId: "tank" as const })),
+        movementPoints: 2,
+      },
+      {
+        id: "G1",
+        owner: "germany" as const,
+        fieldId: "warsaw",
+        units: [{ id: "G1-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+    ];
+    const state = { ...base, armies };
+    const planned = gameReducer(state, { type: "endTurn" });
+    if (planned === null) throw new Error("planned state is null");
+
+    expect(planned.aiPlan[0]).toEqual({ kind: "attack", armyId: "R1", targetFieldId: "warsaw" });
+    const next = drainAiTurn(planned);
+
+    expect(next.fieldOwners.warsaw).toBe("soviet"); // captured by the AI
+    expect(next.lastBattleReportByCountry.soviet?.attackerWins).toBe(true); // the AI's slot
+    expect(next.lastBattleReportByCountry.soviet?.fieldId).toBe("warsaw");
+    expect(next.lastBattleReportByCountry.germany).toBeNull(); // the player's slot untouched
+    expect(next.aiTurnLog.some((entry) => entry.kind === "battle")).toBe(true);
+    expect(next.turn).toBe(2); // rolled over after the drain
+  });
+
+  it("aiStep skips an illegal planned action without failing the turn", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state: typeof base = {
+      ...base,
+      aiPlan: [
+        { kind: "move", armyId: "nope", targetFieldId: "berlin" }, // unknown army: domain error
+        { kind: "order", fieldId: "moscow", unitTypeId: "infantry" },
+      ],
+    };
+
+    const skipped = gameReducer(state, { type: "aiStep" });
+    expect(skipped?.aiPlan).toEqual([{ kind: "order", fieldId: "moscow", unitTypeId: "infantry" }]);
+    expect(skipped?.turn).toBe(1); // not the last action: no rollover yet
+    expect(skipped?.aiTurnLog).toEqual([]); // nothing observable happened
+
+    const drained = gameReducer(skipped, { type: "aiStep" });
+    expect(drained?.aiPlan).toEqual([]);
+    expect(drained?.turn).toBe(2); // last action done: rollover + movement reset
+    expect(drained?.productionQueues.moscow).toEqual([{ typeId: "infantry", remainingTurns: 1 }]);
   });
 });

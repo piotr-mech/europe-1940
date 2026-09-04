@@ -64,9 +64,10 @@ export function DetailPanel({ state, selected, dispatch }: DetailPanelProps) {
   let body: React.ReactNode;
 
   if (selected === null) {
+    const playerReport = state.lastBattleReportByCountry[state.playerCountryId];
     body =
-      state.lastBattleReport !== null ? (
-        <BattleReportView state={state} report={state.lastBattleReport} />
+      playerReport != null ? (
+        <BattleReportView state={state} report={playerReport} />
       ) : (
         <p className="text-sm text-slate-500">Kliknij miasto, pole lub armię na mapie, aby zobaczyć szczegóły.</p>
       );

@@ -258,17 +258,17 @@ Planning is scoring over ≤29 fields and ≤ a handful of armies — microsecon
 
 #### Automated
 
-- [x] 1.1 `npm test` — ai suite green (probability boundaries, per-priority golden scenarios, threshold gates, production mix + adjustments, determinism)
-- [x] 1.2 `npm run lint`
-- [x] 1.3 `npm run build`
+- [x] 1.1 `npm test` — ai suite green (probability boundaries, per-priority golden scenarios, threshold gates, production mix + adjustments, determinism) — a84b64e
+- [x] 1.2 `npm run lint` — a84b64e
+- [x] 1.3 `npm run build` — a84b64e
 
 ### Phase 2: Turn integration and execution
 
 #### Automated
 
-- [ ] 2.1 `npm test` — staged turn suite green (deterministic full turn, per-side report slots, aiStep drain ends with turn+1, illegal action skipped)
-- [ ] 2.2 `npm run lint`
-- [ ] 2.3 `npm run build`
+- [x] 2.1 `npm test` — staged turn suite green (deterministic full turn, per-side report slots, aiStep drain ends with turn+1, illegal action skipped)
+- [x] 2.2 `npm run lint`
+- [x] 2.3 `npm run build`
 
 ### Phase 3: Sequential replay UI
 

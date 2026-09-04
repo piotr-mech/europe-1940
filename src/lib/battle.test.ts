@@ -265,8 +265,13 @@ describe("resolveBattle", () => {
     expect(incomeAfter.steel - incomeBefore.steel).toBe(2);
     expect(incomeAfter.recruits - incomeBefore.recruits).toBe(4);
 
-    // And the full endTurn composes cleanly over a captured state.
-    expect(gameReducer(captured, { type: "endTurn" }).turn).toBe(captured.turn + 1);
+    // And the staged endTurn composes cleanly over a captured state: plan,
+    // drain every aiStep, and the turn rolls over.
+    let afterEnd = gameReducer(captured, { type: "endTurn" });
+    while (afterEnd !== null && afterEnd.aiPlan.length > 0) {
+      afterEnd = gameReducer(afterEnd, { type: "aiStep" });
+    }
+    expect(afterEnd?.turn).toBe(captured.turn + 1);
   });
 
   it("is fully deterministic per seed", () => {

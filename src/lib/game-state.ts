@@ -1,10 +1,21 @@
 import { MAP_FIELDS } from "@/data/map";
 import { UNIT_TYPES } from "@/data/units";
+import { planAiTurn } from "@/lib/ai";
 import { resolveBattle } from "@/lib/battle";
 import { applyMove, armySpeed } from "@/lib/movement";
 import { advanceProduction, applyProductionOrder, collectIncome } from "@/lib/production";
 import { movementAllowance } from "@/lib/supply";
-import type { Army, CountryId, GameState, ResourceBag, UnitInstance, UnitTypeId } from "@/types";
+import type {
+  AiAction,
+  AiTurnLogEntry,
+  Army,
+  BattleReport,
+  CountryId,
+  GameState,
+  ResourceBag,
+  UnitInstance,
+  UnitTypeId,
+} from "@/types";
 
 /**
  * Draft starting armies (S-01 placeholders, re-tunable in S-02/S-03):
@@ -86,7 +97,9 @@ export function createInitialGameState(playerCountryId: CountryId, aiCountryId: 
     },
     productionQueues: {},
     rngSeed,
-    lastBattleReport: null,
+    lastBattleReportByCountry: { germany: null, soviet: null },
+    aiPlan: [],
+    aiTurnLog: [],
   };
   return collectIncome(fresh);
 }
@@ -118,7 +131,8 @@ export type GameAction =
   | { type: "moveArmy"; armyId: string; targetFieldId: string }
   | { type: "attackArmy"; armyId: string; targetFieldId: string }
   | { type: "orderUnit"; fieldId: string; unitTypeId: UnitTypeId }
-  | { type: "endTurn" };
+  | { type: "endTurn" }
+  | { type: "aiStep" };
 
 /**
  * Rethrows developer errors (mistyped import, undefined access) — backstops
@@ -149,14 +163,19 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
     case "attackArmy": {
       if (state === null) return state;
       try {
-        // The battle consumes the stored PRNG seed and writes back the
-        // advanced one plus the report (S-04: the panel renders it).
+        // The battle consumes the stored PRNG seed and writes back the advanced
+        // one plus the report into the attacking side's slot (S-06: per-side
+        // reports — the player's recap is never clobbered by an AI battle).
         const {
           state: afterBattle,
           report,
           nextSeed,
         } = resolveBattle(state, action.armyId, action.targetFieldId, state.rngSeed);
-        return { ...afterBattle, rngSeed: nextSeed, lastBattleReport: report };
+        return {
+          ...afterBattle,
+          rngSeed: nextSeed,
+          lastBattleReportByCountry: { ...state.lastBattleReportByCountry, [report.attackerOwner]: report },
+        };
       } catch (error) {
         // Illegal attack (no enemy army on the field, out of reach): leave the
         // state untouched — the UI only offers attack targets, this is a
@@ -178,24 +197,98 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       }
     }
     case "endTurn": {
-      if (state === null) return state;
-      // Spec §20 ordering: Faza 1 zasoby → Faza 2 produkcja. Both countries
-      // run the economy (the AI accumulates income; its queues stay empty
-      // until S-06), then the turn rolls over and movement resets. Production
-      // runs on the current turn so new-army ids stay deterministic.
+      if (state === null || state.aiPlan.length > 0) return state; // no restarting mid-AI-turn
+      // Spec §20 ordering: Faza 1 zasoby → Faza 2 produkcja → the AI acts.
+      // Economy runs on the current turn so new-army ids stay deterministic.
+      // The AI turn is STAGED (S-06): endTurn plans it into `aiPlan`; each
+      // `aiStep` applies one action; the turn rolls over and movement resets
+      // only when the queue drains — the player's next turn starts after the
+      // AI visibly finishes.
       const withIncome = collectIncome(state);
       const withProduction = advanceProduction(withIncome);
       return {
         ...withProduction,
-        turn: state.turn + 1,
-        // The FR-011 movement cap applies here: an unsupplied army starts the
-        // next turn with max 1 movement point (S-05). Supply reads live
-        // ownership; armies produced this tick stand on own cities.
-        armies: withProduction.armies.map((army) => ({
-          ...army,
-          movementPoints: movementAllowance(withProduction, army),
-        })),
+        aiPlan: planAiTurn(withProduction),
+        aiTurnLog: [],
       };
     }
+    case "aiStep": {
+      if (state === null || state.aiPlan.length === 0) return state;
+      const [action, ...rest] = state.aiPlan;
+      let next = state;
+      try {
+        switch (action.kind) {
+          case "move":
+            next = applyMove(state, action.armyId, action.targetFieldId);
+            break;
+          case "attack": {
+            const {
+              state: afterBattle,
+              report,
+              nextSeed,
+            } = resolveBattle(state, action.armyId, action.targetFieldId, state.rngSeed);
+            next = {
+              ...afterBattle,
+              rngSeed: nextSeed,
+              lastBattleReportByCountry: { ...state.lastBattleReportByCountry, [report.attackerOwner]: report },
+            };
+            break;
+          }
+          case "order":
+            next = applyProductionOrder(state, state.aiCountryId, action.fieldId, action.unitTypeId);
+            break;
+        }
+      } catch (error) {
+        // An illegal planned action (the world changed under the plan): drop
+        // it and move on — the AI is not fatal. Developer errors propagate.
+        if (isDomainError(error)) return { ...state, aiPlan: rest };
+        throw error;
+      }
+      const aiTurnLog = [...state.aiTurnLog, aiLogEntry(state, action, next)];
+      if (rest.length === 0) {
+        // The AI turn ends: reset movement (the FR-011 cap applies — S-05)
+        // and roll over to the player's turn.
+        return {
+          ...next,
+          aiPlan: [],
+          aiTurnLog,
+          turn: next.turn + 1,
+          armies: next.armies.map((army) => ({ ...army, movementPoints: movementAllowance(next, army) })),
+        };
+      }
+      return { ...next, aiPlan: rest, aiTurnLog };
+    }
+  }
+}
+
+/** The observable outcome of one executed AI action, for the turn summary. */
+function aiLogEntry(before: GameState, action: AiAction, after: GameState): AiTurnLogEntry {
+  switch (action.kind) {
+    case "move": {
+      const fromFieldId = before.armies.find((army) => army.id === action.armyId)?.fieldId ?? action.targetFieldId;
+      const capturedCity =
+        after.fieldOwners[action.targetFieldId] === after.aiCountryId &&
+        before.fieldOwners[action.targetFieldId] !== before.aiCountryId;
+      return { kind: "move", armyId: action.armyId, fromFieldId, toFieldId: action.targetFieldId, capturedCity };
+    }
+    case "attack": {
+      // A fresh report object in the AI's slot means the battle happened; a
+      // backstop-swallowed attack leaves the previous report in place.
+      const beforeReport = before.lastBattleReportByCountry[after.aiCountryId];
+      const report = after.lastBattleReportByCountry[after.aiCountryId];
+      if (report !== null && report !== beforeReport && report.attackerArmyId === action.armyId) {
+        return { kind: "battle", report };
+      }
+      const fromFieldId = before.armies.find((army) => army.id === action.armyId)?.fieldId ?? action.targetFieldId;
+      return {
+        kind: "move",
+        armyId: action.armyId,
+        fromFieldId,
+        toFieldId: action.targetFieldId,
+        capturedCity: false,
+      };
+    }
+    case "order":
+      return { kind: "order", fieldId: action.fieldId, unitTypeId: action.unitTypeId };
   }
 }

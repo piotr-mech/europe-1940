@@ -121,8 +121,10 @@ export function GameScreen() {
 
   const playerCountry = data.countries.find((country) => country.id === state.playerCountryId);
   const aiCountry = data.countries.find((country) => country.id === state.aiCountryId);
-  const battlePopup =
-    state.lastBattleReport !== null && state.lastBattleReport !== dismissedReport ? state.lastBattleReport : null;
+  // The player's report slot (S-06): AI battles never clobber it — they
+  // surface through the replay (Phase 3).
+  const playerReport = state.lastBattleReportByCountry[state.playerCountryId];
+  const battlePopup = playerReport !== null && playerReport !== dismissedReport ? playerReport : null;
 
   // The selected army's reach this turn (selection is UI state, not game state).
   const reachable = computeReach(state, selectedArmyId);

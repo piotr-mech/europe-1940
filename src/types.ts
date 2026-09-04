@@ -102,6 +102,12 @@ export type AiAction =
   | { kind: "attack"; armyId: string; targetFieldId: string }
   | { kind: "order"; fieldId: string; unitTypeId: UnitTypeId };
 
+/** One executed AI action with its observable outcome (for the turn summary). */
+export type AiTurnLogEntry =
+  | { kind: "move"; armyId: string; fromFieldId: string; toFieldId: string; capturedCity: boolean }
+  | { kind: "battle"; report: BattleReport }
+  | { kind: "order"; fieldId: string; unitTypeId: UnitTypeId };
+
 // --- Battle (S-04) ---
 
 /** One line of the battle report's "why" (NFR: no unexplainable outcomes). */
@@ -177,6 +183,10 @@ export interface GameState {
   productionQueues: Record<string, ProductionOrder[]>;
   /** PRNG seed for the next battle (S-04); advanced by every resolveBattle call. */
   rngSeed: number;
-  /** The most recent battle's report (S-04); null until the first battle. */
-  lastBattleReport: BattleReport | null;
+  /** The most recent battle report per side (S-06): the player's slot is never overwritten by an AI battle. */
+  lastBattleReportByCountry: Record<CountryId, BattleReport | null>;
+  /** Pending AI actions (S-06): applied one per `aiStep`; empty outside the AI turn. */
+  aiPlan: AiAction[];
+  /** What the AI did this turn (S-06), for the replay summary; cleared by the next endTurn. */
+  aiTurnLog: AiTurnLogEntry[];
 }
