@@ -196,23 +196,23 @@ No existing saves to migrate (persistence is new). Future schema changes bump `S
 
 #### Automated
 
-- [x] 1.1 Unit tests pass: `npx vitest run src/lib/persistence.test.ts`
-- [x] 1.2 Full suite still green: `npx vitest run`
-- [x] 1.3 Linting passes: `npm run lint`
-- [x] 1.4 Production build passes: `npm run build`
+- [x] 1.1 Unit tests pass: `npx vitest run src/lib/persistence.test.ts` — 5ad15a5
+- [x] 1.2 Full suite still green: `npx vitest run` — 5ad15a5
+- [x] 1.3 Linting passes: `npm run lint` — 5ad15a5
+- [x] 1.4 Production build passes: `npm run build` — 5ad15a5
 
 ### Phase 2: GameScreen integration
 
 #### Automated
 
-- [ ] 2.1 Full suite still green: `npx vitest run`
-- [ ] 2.2 Linting passes: `npm run lint`
-- [ ] 2.3 Production build passes: `npm run build`
+- [x] 2.1 Full suite still green: `npx vitest run`
+- [x] 2.2 Linting passes: `npm run lint`
+- [x] 2.3 Production build passes: `npm run build`
 
 #### Manual
 
-- [ ] 2.4 Refresh mid-campaign (own turn) resumes the same turn
-- [ ] 2.5 Refresh during AI replay continues the replay
-- [ ] 2.6 Refresh after game end shows the setup screen
-- [ ] 2.7 Corrupt-save drill: garbage entry ⇒ setup screen, no crash
-- [ ] 2.8 Resumed game re-shows a pending battle popup once
+- [x] 2.4 Refresh mid-campaign (own turn) resumes the same turn
+- [x] 2.5 Refresh during AI replay continues the replay
+- [x] 2.6 Refresh after game end shows the setup screen
+- [x] 2.7 Corrupt-save drill: garbage entry ⇒ setup screen, no crash
+- [x] 2.8 Resumed game re-shows a pending battle popup once

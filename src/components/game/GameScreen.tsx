@@ -7,6 +7,7 @@ import { VictoryOverlay } from "@/components/game/VictoryOverlay";
 import { getGameData } from "@/lib/game-data";
 import { gameReducer, isDomainError } from "@/lib/game-state";
 import { attackFields, reachableFields } from "@/lib/movement";
+import { clearGame, loadGame, saveGame } from "@/lib/persistence";
 import { cn } from "@/lib/utils";
 import type { BattleReport, Country, CountryId, GameState, ResourceId } from "@/types";
 
@@ -47,12 +48,12 @@ function CountryOption({ country, selected, onSelect }: CountryOptionProps) {
 
 /**
  * The /game island (FR-001): setup screen (player's and AI's country — always
- * different) transitioning to the board view; refresh returns to setup
- * (persistence is S-08).
+ * different) transitioning to the board view. A saved campaign auto-resumes
+ * on mount (S-08): the lazy initializer reads localStorage once at boot.
  */
 export function GameScreen() {
   const data = getGameData();
-  const [state, dispatch] = useReducer(gameReducer, null);
+  const [state, dispatch] = useReducer(gameReducer, null, loadGame);
   const [playerCountryId, setPlayerCountryId] = useState<CountryId>("germany");
   const [aiCountryId, setAiCountryId] = useState<CountryId>("soviet");
   const [selectedArmyId, setSelectedArmyId] = useState<string | null>(null);
@@ -95,6 +96,19 @@ export function GameScreen() {
       clearTimeout(timer);
     };
   }, [state, battlePopup, aiBattlePopup, aiTurnActive, dispatch]);
+
+  // Autosave (S-08, FR-014): every state transition persists — including each
+  // staged `aiStep`, so even a refresh mid-AI-replay resumes correctly. A
+  // finished campaign clears the save instead (order matters: never save a
+  // state that already has a winner); `null` (setup screen) saves nothing.
+  useEffect(() => {
+    if (state === null) return;
+    if (state.winner !== null) {
+      clearGame();
+      return;
+    }
+    saveGame(state);
+  }, [state]);
 
   // Picking a side in one group swaps the other, so the two can never be equal.
   const pickPlayerCountry = (id: CountryId): void => {
