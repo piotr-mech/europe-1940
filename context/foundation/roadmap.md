@@ -3,7 +3,7 @@ project: "EUROPE 1940"
 version: 1
 status: draft
 created: 2026-08-29
-updated: 2026-09-04
+updated: 2026-09-05
 prd_version: 1
 main_goal: low-complexity
 top_blocker: none
@@ -48,7 +48,7 @@ A simple, turn-based, board-game-style strategy game set in Europe 1940 — buil
 | S-04 | battle-city-capture  | attack an enemy field, win an automatic battle, take ownership of a city   | S-02, S-03    | FR-007, FR-008, FR-009, US-01  | done |
 | S-05 | supply-lines         | see supply status and suffer the penalty when the line is cut              | S-04          | FR-010, FR-011, Business Logic | done |
 | S-06 | ai-opponent          | end the turn and face an AI opponent acting by rules                       | S-04          | FR-012                         | done        |
-| S-07 | victory-conditions   | win or lose the campaign by controlling all enemy cities                   | S-06          | FR-013                         | proposed |
+| S-07 | victory-conditions   | win or lose the campaign by controlling all enemy cities                   | S-06          | FR-013                         | done |
 | S-08 | save-resume          | interrupt a game and continue it later; survive a page refresh             | S-07          | FR-014, Guardrails             | proposed |
 
 ## Streams
@@ -172,7 +172,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Needs the AI to be a real opponent (both sides must be able to win); a clean, explanation-free victory condition per PRD.
-- **Status:** proposed
+- **Status:** done
 
 ### S-08: Save and resume
 
@@ -219,6 +219,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Done
 
+- **S-07: user can win the campaign by controlling all enemy cities — or lose when the AI takes all of theirs — with a clear end-of-game result** — Archived 2026-09-05 → `context/archive/2026-09-04-victory-conditions/`. Lesson: —.
 - **F-01: (foundation) game reads the prototype map and balance data from data files** — Archived 2026-08-31 → `context/archive/2026-08-31-game-data-contract/`. Lesson: —.
 - **S-01: start a new game (picking own and AI country) and see the board-game map** — Archived 2026-09-01 → `context/archive/2026-08-31-new-game-map-view/`. Lesson: —.
 - **S-02: user can combine units into armies (max 8) moving as a single token, move armies between connected fields within movement points (slowest unit sets pace, terrain changes cost), and click cities/armies to inspect their details** — Archived 2026-09-01 → `context/archive/2026-09-01-army-movement/`. Lesson: —.
