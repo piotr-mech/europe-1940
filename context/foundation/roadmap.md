@@ -3,7 +3,7 @@ project: "EUROPE 1940"
 version: 1
 status: draft
 created: 2026-08-29
-updated: 2026-09-05
+updated: 2026-09-06
 prd_version: 1
 main_goal: low-complexity
 top_blocker: none
@@ -49,7 +49,7 @@ A simple, turn-based, board-game-style strategy game set in Europe 1940 — buil
 | S-05 | supply-lines         | see supply status and suffer the penalty when the line is cut              | S-04          | FR-010, FR-011, Business Logic | done |
 | S-06 | ai-opponent          | end the turn and face an AI opponent acting by rules                       | S-04          | FR-012                         | done        |
 | S-07 | victory-conditions   | win or lose the campaign by controlling all enemy cities                   | S-06          | FR-013                         | done |
-| S-08 | save-resume          | interrupt a game and continue it later; survive a page refresh             | S-07          | FR-014, Guardrails             | proposed |
+| S-08 | save-resume          | interrupt a game and continue it later; survive a page refresh             | S-07          | FR-014, Guardrails             | in-progress |
 
 ## Streams
 
@@ -184,7 +184,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sequenced last so the persisted state schema covers the complete campaign (units, cities, production queues, AI memory) instead of being reworked as features land.
-- **Status:** proposed
+- **Status:** in-progress
 
 ## Backlog Handoff
 
