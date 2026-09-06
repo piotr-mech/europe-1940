@@ -49,7 +49,7 @@ A simple, turn-based, board-game-style strategy game set in Europe 1940 — buil
 | S-05 | supply-lines         | see supply status and suffer the penalty when the line is cut              | S-04          | FR-010, FR-011, Business Logic | done |
 | S-06 | ai-opponent          | end the turn and face an AI opponent acting by rules                       | S-04          | FR-012                         | done        |
 | S-07 | victory-conditions   | win or lose the campaign by controlling all enemy cities                   | S-06          | FR-013                         | done |
-| S-08 | save-resume          | interrupt a game and continue it later; survive a page refresh             | S-07          | FR-014, Guardrails             | in-progress |
+| S-08 | save-resume          | interrupt a game and continue it later; survive a page refresh             | S-07          | FR-014, Guardrails             | done |
 
 ## Streams
 
@@ -184,7 +184,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sequenced last so the persisted state schema covers the complete campaign (units, cities, production queues, AI memory) instead of being reworked as features land.
-- **Status:** in-progress
+- **Status:** done
 
 ## Backlog Handoff
 
@@ -219,6 +219,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Done
 
+- **S-08: user can interrupt a game and continue it later; game state survives a page refresh mid-campaign (client-side persistence)** — Archived 2026-09-06 → `context/archive/2026-09-06-save-resume/`. Lesson: —.
 - **S-07: user can win the campaign by controlling all enemy cities — or lose when the AI takes all of theirs — with a clear end-of-game result** — Archived 2026-09-05 → `context/archive/2026-09-04-victory-conditions/`. Lesson: —.
 - **F-01: (foundation) game reads the prototype map and balance data from data files** — Archived 2026-08-31 → `context/archive/2026-08-31-game-data-contract/`. Lesson: —.
 - **S-01: start a new game (picking own and AI country) and see the board-game map** — Archived 2026-09-01 → `context/archive/2026-08-31-new-game-map-view/`. Lesson: —.

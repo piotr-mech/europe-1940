@@ -1,10 +1,10 @@
 ---
 change_id: save-resume
 title: Save resume
-status: impl_reviewed
+status: archived
 created: 2026-09-06
 updated: 2026-09-06
-archived_at: null
+archived_at: 2026-09-06T13:08:51Z
 ---
 
 ## Notes
