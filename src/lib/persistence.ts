@@ -1,5 +1,6 @@
 import { COUNTRIES } from "@/data/countries";
 import { UNIT_TYPES } from "@/data/units";
+import { RESOURCE_IDS } from "@/lib/production";
 import type { CountryId, GameState, UnitTypeId } from "@/types";
 
 /**
@@ -23,7 +24,6 @@ interface SaveEnvelope {
 
 const COUNTRY_IDS: ReadonlySet<CountryId> = new Set(COUNTRIES.map((country) => country.id));
 const UNIT_TYPE_IDS: ReadonlySet<UnitTypeId> = new Set(UNIT_TYPES.map((unitType) => unitType.id));
-const RESOURCE_IDS = ["money", "steel", "recruits"] as const;
 
 /**
  * Resolves localStorage, or null where storage is unavailable (non-DOM runtime,

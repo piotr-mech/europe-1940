@@ -26,7 +26,8 @@ const UNIT_TYPE_BY_ID: ReadonlyMap<UnitTypeId, UnitType> = new Map(
   UNIT_TYPES.map((unitType) => [unitType.id, unitType]),
 );
 
-const RESOURCE_IDS: readonly ResourceId[] = ["money", "steel", "recruits"];
+/** The game's resource ids in canonical order; shared single source (S-03, S-08 validator). */
+export const RESOURCE_IDS: readonly ResourceId[] = ["money", "steel", "recruits"];
 
 function getField(fieldId: string): MapField {
   const field = FIELD_BY_ID.get(fieldId);
