@@ -205,14 +205,14 @@ No existing saves to migrate (persistence is new). Future schema changes bump `S
 
 #### Automated
 
-- [x] 2.1 Full suite still green: `npx vitest run`
-- [x] 2.2 Linting passes: `npm run lint`
-- [x] 2.3 Production build passes: `npm run build`
+- [x] 2.1 Full suite still green: `npx vitest run` — 6db94ee
+- [x] 2.2 Linting passes: `npm run lint` — 6db94ee
+- [x] 2.3 Production build passes: `npm run build` — 6db94ee
 
 #### Manual
 
-- [x] 2.4 Refresh mid-campaign (own turn) resumes the same turn
-- [x] 2.5 Refresh during AI replay continues the replay
-- [x] 2.6 Refresh after game end shows the setup screen
-- [x] 2.7 Corrupt-save drill: garbage entry ⇒ setup screen, no crash
-- [x] 2.8 Resumed game re-shows a pending battle popup once
+- [x] 2.4 Refresh mid-campaign (own turn) resumes the same turn — 6db94ee
+- [x] 2.5 Refresh during AI replay continues the replay — 6db94ee
+- [x] 2.6 Refresh after game end shows the setup screen — 6db94ee
+- [x] 2.7 Corrupt-save drill: garbage entry ⇒ setup screen, no crash — 6db94ee
+- [x] 2.8 Resumed game re-shows a pending battle popup once — 6db94ee
