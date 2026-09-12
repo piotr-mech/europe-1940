@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { attackerStrength, defenderStrength, resolveBattle, rngStep } from "@/lib/battle";
+import { UNIT_TYPES } from "@/data/units";
+import { attackerStrength, defenderStrength, resolveBattle, rngStep, ROLL_SPREAD } from "@/lib/battle";
 import { gameReducer } from "@/lib/game-state";
 import { attackFields } from "@/lib/movement";
 import { collectIncome } from "@/lib/production";
-import { army, drainAiTurn, field, findArmy, hasArmy, stateWithArmies } from "@/lib/test-utils";
-import type { UnitTypeId } from "@/types";
+import { army, drainAiTurn, failWith, field, findArmy, hasArmy, stateWithArmies } from "@/lib/test-utils";
+import type { Army, CountryId, GameState, UnitTypeId } from "@/types";
+
+const UNIT_BY_ID = new Map(UNIT_TYPES.map((unitType) => [unitType.id, unitType]));
+
+const infantry = (count: number): UnitTypeId[] => Array<UnitTypeId>(count).fill("infantry");
+const tanks = (count: number): UnitTypeId[] => Array<UnitTypeId>(count).fill("tank");
 
 describe("rngStep", () => {
   it("is deterministic per seed and advances the seed", () => {
@@ -424,5 +430,217 @@ describe("supply penalties in battle (FR-011, S-05)", () => {
     expect(report.defenseStrength).toBe(15); // 20 - round(5)
     expect(report.attackModifiers).toEqual([{ label: "Brak zaopatrzenia", amount: -5 }]);
     expect(report.defenseModifiers).toEqual([{ label: "Brak zaopatrzenia", amount: -5 }]);
+  });
+});
+
+describe("resolveBattle invariant sweep (G5/G6, seeds 0–99)", () => {
+  const SEEDS = Array.from({ length: 100 }, (_, seed) => seed);
+
+  interface Matchup {
+    label: string;
+    armyId: string;
+    targetFieldId: string;
+    state: () => GameState;
+  }
+
+  // Matrix across the strength plane and every modifier family: weaker/equal/
+  // stronger attackers, open ground, river crossing, unsupplied attacker,
+  // city defense, and a multi-defender city.
+  const matchups: Matchup[] = [
+    {
+      label: "weaker attacker, open plains (A18 vs D20)",
+      armyId: "G",
+      targetFieldId: "volhynia-plains",
+      state: () =>
+        stateWithArmies([
+          army("G", "germany", "lublin-plains", infantry(6)),
+          army("R", "soviet", "volhynia-plains", infantry(4)),
+        ]),
+    },
+    {
+      label: "equal strengths, open plains (A15 vs D15)",
+      armyId: "G",
+      targetFieldId: "oder-plains",
+      state: () =>
+        stateWithArmies([army("G", "germany", "berlin", infantry(5)), army("R", "soviet", "oder-plains", infantry(3))]),
+    },
+    {
+      label: "stronger attacker, open plains (A56 vs D5)",
+      armyId: "G",
+      targetFieldId: "oder-plains",
+      state: () =>
+        stateWithArmies([army("G", "germany", "berlin", tanks(8)), army("R", "soviet", "oder-plains", infantry(1))]),
+    },
+    {
+      label: "weaker attacker across a river (A9 vs D10)",
+      armyId: "G",
+      targetFieldId: "bzura-river",
+      state: () =>
+        stateWithArmies([army("G", "germany", "poznan", infantry(4)), army("R", "soviet", "bzura-river", infantry(2))]),
+    },
+    {
+      label: "unsupplied attacker walled off by enemy fields (A42 vs D8)",
+      armyId: "G",
+      targetFieldId: "berlin",
+      state: () => {
+        const base = stateWithArmies([
+          army("G", "germany", "oder-plains", tanks(8)),
+          army("R", "soviet", "berlin", infantry(1)),
+        ]);
+        return {
+          ...base,
+          fieldOwners: {
+            ...base.fieldOwners,
+            berlin: "soviet" as const,
+            poznan: "soviet" as const,
+            "pomerania-plains": "soviet" as const,
+          },
+        };
+      },
+    },
+    {
+      label: "weaker attacker vs a multi-defender city (A12 vs D23)",
+      armyId: "G",
+      targetFieldId: "brest",
+      state: () =>
+        stateWithArmies([
+          army("G", "germany", "bug-river", infantry(4)),
+          army("R1", "soviet", "brest", infantry(2)),
+          army("R2", "soviet", "brest", infantry(2)),
+        ]),
+    },
+  ];
+
+  const attackOf = (typeIds: UnitTypeId[]): number =>
+    typeIds.reduce((sum, typeId) => sum + (UNIT_BY_ID.get(typeId) ?? failWith(`unknown unit "${typeId}"`)).attack, 0);
+  const defenseOf = (typeIds: UnitTypeId[]): number =>
+    typeIds.reduce((sum, typeId) => sum + (UNIT_BY_ID.get(typeId) ?? failWith(`unknown unit "${typeId}"`)).defense, 0);
+  const sumModifiers = (modifiers: { amount: number }[]): number =>
+    modifiers.reduce((sum, modifier) => sum + modifier.amount, 0);
+
+  /** Every structural invariant one resolution must satisfy, with a named, seed-cited failure message. */
+  function assertInvariants(matchup: Matchup, seed: number): void {
+    const base = matchup.state();
+    const { state: next, report, nextSeed } = resolveBattle(base, matchup.armyId, matchup.targetFieldId, seed);
+    const where = `${matchup.label}, seed ${seed}`;
+    const defenderIds = report.defenderArmyIds;
+    const attackerBefore = findArmy(base, matchup.armyId);
+    const defendersBefore = base.armies.filter((candidate) => defenderIds.includes(candidate.id));
+    const defenderUnitsBefore = defendersBefore.reduce((sum, defender) => sum + defender.units.length, 0);
+
+    // The winner survives with >= 1 unit; the loser is destroyed entirely (FR-008).
+    if (report.attackerWins) {
+      expect(findArmy(next, matchup.armyId).units.length, `${where}: winner survival`).toBeGreaterThanOrEqual(1);
+      for (const id of defenderIds) {
+        expect(hasArmy(next, id), `${where}: loser army "${id}" fully removed`).toBe(false);
+      }
+      expect(report.defenderLosses, `${where}: loser losses are total`).toBe(defenderUnitsBefore);
+      expect(report.attackerLosses, `${where}: winner losses within the survival clamp`).toBeLessThanOrEqual(
+        attackerBefore.units.length - 1,
+      );
+    } else {
+      expect(hasArmy(next, matchup.armyId), `${where}: loser attacker fully removed`).toBe(false);
+      expect(report.attackerLosses, `${where}: loser losses are total`).toBe(attackerBefore.units.length);
+      expect(report.defenderLosses, `${where}: winner losses within the survival clamp`).toBeLessThanOrEqual(
+        defenderUnitsBefore - 1,
+      );
+    }
+    expect(report.attackerLosses, `${where}: losses never negative`).toBeGreaterThanOrEqual(0);
+    expect(report.defenderLosses, `${where}: losses never negative`).toBeGreaterThanOrEqual(0);
+
+    // No empty or corrupted armies remain anywhere on the board.
+    for (const surviving of next.armies) {
+      expect(surviving.units.length, `${where}: army "${surviving.id}" keeps >= 1 unit`).toBeGreaterThanOrEqual(1);
+    }
+
+    // Exactly one owner per field (G6): every owner stays a valid country, and
+    // the fought-over field follows the ownership rule — the attacker's on a
+    // win, unchanged after a successful defense.
+    for (const owner of Object.values(next.fieldOwners)) {
+      expect<CountryId>(["germany", "soviet"], `${where}: owners are valid countries`).toContain(owner);
+    }
+    expect(next.fieldOwners[matchup.targetFieldId], `${where}: target ownership rule`).toBe(
+      report.attackerWins ? attackerBefore.owner : base.fieldOwners[matchup.targetFieldId],
+    );
+
+    // Report arithmetic adds up (NFR: no unexplainable outcomes): the
+    // composition's base stats plus the signed modifiers equal each side's
+    // reported strength, on both sides.
+    expect(
+      attackOf(report.attackerComposition) + sumModifiers(report.attackModifiers),
+      `${where}: attack arithmetic`,
+    ).toBe(report.attackStrength);
+    expect(
+      defenseOf(report.defenderComposition) + sumModifiers(report.defenseModifiers),
+      `${where}: defense arithmetic`,
+    ).toBe(report.defenseStrength);
+    expect(report.attackStrength, `${where}: strength never negative`).toBeGreaterThanOrEqual(0);
+    expect(report.defenseStrength, `${where}: strength never negative`).toBeGreaterThanOrEqual(0);
+
+    // The staged deaths match the applied losses.
+    expect(report.deathLog.length, `${where}: deathLog covers exactly the losses`).toBe(
+      report.attackerLosses + report.defenderLosses,
+    );
+
+    // Roll contract: both multipliers stay within ±20% of the pre-roll
+    // strength, the higher rolled total wins (a tie holds for the defender),
+    // and one battle advances the seed by exactly three draws.
+    const rollA = rngStep(seed);
+    const rollB = rngStep(rollA.nextSeed);
+    const attackRoll = report.attackStrength * (1 - ROLL_SPREAD + rollA.value * 2 * ROLL_SPREAD);
+    const defenseRoll = report.defenseStrength * (1 - ROLL_SPREAD + rollB.value * 2 * ROLL_SPREAD);
+    expect(report.attackerWins, `${where}: outcome follows the seeded rolls`).toBe(attackRoll > defenseRoll);
+    expect(nextSeed, `${where}: seed advanced by exactly three draws`).toBe(rngStep(rollB.nextSeed).nextSeed);
+  }
+
+  for (const matchup of matchups) {
+    it(`holds every structural invariant across seeds 0–99: ${matchup.label}`, () => {
+      for (const seed of SEEDS) {
+        assertInvariants(matchup, seed);
+      }
+    });
+  }
+});
+
+describe("defensive branches and edge rules (G7)", () => {
+  it("a 0-strength attacker vs a 0-strength defender resolves defender-wins (tie rule)", () => {
+    // Degenerate by design (the engine never fields an empty army — armySpeed
+    // throws): an empty defender army is the only constructible 0 defense, and
+    // a lone anti-tank gun (A3) crossing a river (−3) the only 0 attack.
+    const emptyDefender: Army = { id: "R", owner: "soviet", fieldId: "bzura-river", units: [], movementPoints: 0 };
+    const state = stateWithArmies([army("G", "germany", "poznan", ["antiTank"]), emptyDefender]);
+
+    const { state: next, report } = resolveBattle(state, "G", "bzura-river", 1);
+
+    expect(report.attackStrength).toBe(0);
+    expect(report.defenseStrength).toBe(0);
+    expect(report.attackerWins).toBe(false); // 0 vs 0 is a tie — a tie holds for the defender
+    expect(hasArmy(next, "G")).toBe(false);
+    expect(hasArmy(next, "R")).toBe(true);
+  });
+
+  it("a multi-hop attack free-captures an ungarrisoned enemy city on its path and cancels that city's queue", () => {
+    // Soviet tanks (speed 2) march Lublin -> Warsaw (undefended German city)
+    // -> Bzura river (defended by Germany): the intermediate city flips for
+    // free with its queue cancelled, exactly like a walk-in capture.
+    const base = stateWithArmies([
+      army("R", "soviet", "lublin-plains", tanks(8)),
+      army("G", "germany", "bzura-river", infantry(4)),
+    ]);
+    base.productionQueues.warsaw = [{ typeId: "infantry", remainingTurns: 1 }];
+
+    const { state: next, report } = resolveBattle(base, "R", "bzura-river", 1);
+
+    expect(report.attackerWins).toBe(true); // A56 vs D20: the roll bands cannot cross
+    expect(next.fieldOwners.warsaw).toBe("soviet"); // free capture of the path city
+    expect(next.productionQueues.warsaw).toBeUndefined(); // its queue is cancelled (FR-009)
+    expect(next.fieldOwners["bzura-river"]).toBe("soviet"); // the fought-over field flips
+    expect(hasArmy(next, "G")).toBe(false);
+  });
+
+  it("uses real adjacency for the sweep and branch layouts (guards against data drift)", () => {
+    expect(field("lublin-plains").connections).toContain("warsaw");
+    expect(field("warsaw").connections).toContain("bzura-river");
+    expect(field("poznan").connections).toContain("bzura-river");
   });
 });

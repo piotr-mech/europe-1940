@@ -289,25 +289,25 @@ No data migration. Persistence compatibility is a constraint, not a change: old 
 
 #### Automated
 
-- [x] 2.1 Skipped-action trace lands in aiTurnLog; suite green (`npm test`)
-- [x] 2.2 Persistence round-trips unaffected incl. one save containing a skipped entry
-- [x] 2.3 Build + lint green (`npm run build`, `npm run lint`)
+- [x] 2.1 Skipped-action trace lands in aiTurnLog; suite green (`npm test`) — e283824
+- [x] 2.2 Persistence round-trips unaffected incl. one save containing a skipped entry — e283824
+- [x] 2.3 Build + lint green (`npm run build`, `npm run lint`) — e283824
 
 #### Manual
 
-- [x] 2.4 Dev playthrough: AI turn summary renders without errors after the state change
+- [x] 2.4 Dev playthrough: AI turn summary renders without errors after the state change — e283824
 
 ### Phase 3: Battle Invariant Sweep + Defensive Branches
 
 #### Automated
 
-- [ ] 3.1 Sweep describe (6 matchups × seeds 0–99) green with all invariants
-- [ ] 3.2 Defensive-branch + intermediate-path queue-cancel tests green
-- [ ] 3.3 Suite runtime ≤ ~10s; lint green
+- [x] 3.1 Sweep describe (6 matchups × seeds 0–99) green with all invariants
+- [x] 3.2 Defensive-branch + intermediate-path queue-cancel tests green
+- [x] 3.3 Suite runtime ≤ ~10s; lint green
 
 #### Manual
 
-- [ ] 3.4 Spot-check: supplyPenaltyOf → Math.floor flips a named test; reverted
+- [x] 3.4 Spot-check: supplyPenaltyOf → Math.floor flips a named test; reverted
 
 ### Phase 4: AI Gate Boundary Tests + Probability Coupling
 
