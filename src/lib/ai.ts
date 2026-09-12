@@ -20,9 +20,9 @@ export type AiPlan = AiAction[];
 
 // --- Draft balance constants (spec §25/§27/§29; tune after first campaigns) ---
 
-/** §27 attack gates: below FREE_PROB never; below IMPORTANT_PROB only above-median-value targets. */
-const ATTACK_PROB_FREE = 0.6;
-const ATTACK_PROB_IMPORTANT = 0.4;
+/** §27 attack gates: below FREE_PROB never; below IMPORTANT_PROB only above-median-value targets. Exported so tests pin the exact thresholds (testing-regression-floor). */
+export const ATTACK_PROB_FREE = 0.6;
+export const ATTACK_PROB_IMPORTANT = 0.4;
 /** §25: flat bonus for the two capitals. */
 const CAPITAL_BONUS = 10;
 /** §25: flat bonus when capturing the target cuts at least one enemy army's supply. */

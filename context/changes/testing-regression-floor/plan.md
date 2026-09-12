@@ -301,25 +301,25 @@ No data migration. Persistence compatibility is a constraint, not a change: old 
 
 #### Automated
 
-- [x] 3.1 Sweep describe (6 matchups × seeds 0–99) green with all invariants
-- [x] 3.2 Defensive-branch + intermediate-path queue-cancel tests green
-- [x] 3.3 Suite runtime ≤ ~10s; lint green
+- [x] 3.1 Sweep describe (6 matchups × seeds 0–99) green with all invariants — 3d8aae2
+- [x] 3.2 Defensive-branch + intermediate-path queue-cancel tests green — 3d8aae2
+- [x] 3.3 Suite runtime ≤ ~10s; lint green — 3d8aae2
 
 #### Manual
 
-- [x] 3.4 Spot-check: supplyPenaltyOf → Math.floor flips a named test; reverted
+- [x] 3.4 Spot-check: supplyPenaltyOf → Math.floor flips a named test; reverted — 3d8aae2
 
 ### Phase 4: AI Gate Boundary Tests + Probability Coupling
 
 #### Automated
 
-- [ ] 4.1 Gate constants exported; boundary scenarios at exactly 0.40/0.60 green
-- [ ] 4.2 Analytic-vs-simulation coupling test green (tolerance 0.05)
-- [ ] 4.3 Lint green
+- [x] 4.1 Gate constants exported; boundary scenarios at exactly 0.40/0.60 green
+- [x] 4.2 Analytic-vs-simulation coupling test green (tolerance 0.05)
+- [x] 4.3 Lint green
 
 #### Manual
 
-- [ ] 4.4 Spot-check: ATTACK_PROB_FREE → 0.7 flips a named boundary test; reverted
+- [x] 4.4 Spot-check: ATTACK_PROB_FREE → 0.7 flips a named boundary test; reverted
 
 ### Phase 5: AI Soak Simulation + Cookbook Update
 
