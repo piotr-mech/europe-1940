@@ -2,28 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { MAP_FIELDS } from "@/data/map";
 import { aiWinProbability, cityTargetValue, planAiProduction, planAiTurn } from "@/lib/ai";
-import { createInitialGameState } from "@/lib/game-state";
-import { armySpeed } from "@/lib/movement";
-import type { AiAction, Army, CountryId, GameState, UnitInstance, UnitTypeId } from "@/types";
-
-function failWith(message: string): never {
-  throw new Error(message);
-}
-
-function units(...typeIds: UnitTypeId[]): UnitInstance[] {
-  return typeIds.map((typeId, index) => ({ id: `u${index + 1}`, typeId }));
-}
-
-function army(id: string, owner: CountryId, fieldId: string, typeIds: UnitTypeId[]): Army {
-  const base: Army = { id, owner, fieldId, units: units(...typeIds) };
-  return { ...base, movementPoints: armySpeed(base) };
-}
-
-/** Initial game (soviet AI) with test armies and ownership overrides. */
-function stateWith(armies: Army[], owners: Record<string, CountryId> = {}): GameState {
-  const state = createInitialGameState("germany", "soviet");
-  return { ...state, armies, fieldOwners: { ...state.fieldOwners, ...owners } };
-}
+import { army, failWith, stateWith } from "@/lib/test-utils";
+import type { AiAction, GameState, UnitTypeId } from "@/types";
 
 const moves = (plan: AiAction[]) => plan.filter((action) => action.kind !== "order");
 

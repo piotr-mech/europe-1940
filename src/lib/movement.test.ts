@@ -1,38 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { MAP_FIELDS } from "@/data/map";
-import { createInitialGameState } from "@/lib/game-state";
 import { applyMove, armySpeed, attackFields, movementCostOf, planMove, reachableFields } from "@/lib/movement";
-import type { Army, CountryId, GameState, UnitInstance, UnitTypeId } from "@/types";
-
-const FIELD_BY_ID = new Map(MAP_FIELDS.map((field) => [field.id, field]));
-
-function field(fieldId: string) {
-  return FIELD_BY_ID.get(fieldId) ?? failWith(`unknown field "${fieldId}"`);
-}
-
-function findArmy(state: GameState, armyId: string) {
-  return state.armies.find((candidate) => candidate.id === armyId) ?? failWith(`unknown army "${armyId}"`);
-}
-
-function failWith(message: string): never {
-  throw new Error(message);
-}
-
-function units(...typeIds: UnitTypeId[]): UnitInstance[] {
-  return typeIds.map((typeId, index) => ({ id: `u${index + 1}`, typeId }));
-}
-
-function army(id: string, owner: CountryId, fieldId: string, typeIds: UnitTypeId[]): Army {
-  const base: Army = { id, owner, fieldId, units: units(...typeIds) };
-  return { ...base, movementPoints: armySpeed(base) };
-}
-
-/** Initial game with the armies replaced by the test setup. */
-function stateWithArmies(armies: Army[]): GameState {
-  const state = createInitialGameState("germany", "soviet");
-  return { ...state, armies };
-}
+import { army, field, findArmy, stateWithArmies } from "@/lib/test-utils";
 
 describe("armySpeed", () => {
   it("returns the slowest unit's movement (FR-005)", () => {

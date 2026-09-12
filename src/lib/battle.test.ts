@@ -1,44 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { MAP_FIELDS } from "@/data/map";
-import { gameReducer, createInitialGameState } from "@/lib/game-state";
-import { armySpeed, attackFields } from "@/lib/movement";
-import { collectIncome } from "@/lib/production";
 import { attackerStrength, defenderStrength, resolveBattle, rngStep } from "@/lib/battle";
-import type { Army, CountryId, GameState, MapField, UnitInstance, UnitTypeId } from "@/types";
-
-const FIELD_BY_ID = new Map(MAP_FIELDS.map((field) => [field.id, field]));
-
-function field(fieldId: string): MapField {
-  return FIELD_BY_ID.get(fieldId) ?? failWith(`unknown field "${fieldId}"`);
-}
-
-function failWith(message: string): never {
-  throw new Error(message);
-}
-
-function units(...typeIds: UnitTypeId[]): UnitInstance[] {
-  return typeIds.map((typeId, index) => ({ id: `u${index + 1}`, typeId }));
-}
-
-function army(id: string, owner: CountryId, fieldId: string, typeIds: UnitTypeId[]): Army {
-  const base: Army = { id, owner, fieldId, units: units(...typeIds) };
-  return { ...base, movementPoints: armySpeed(base) };
-}
-
-/** Initial game with the armies replaced by the test setup. */
-function stateWithArmies(armies: Army[]): GameState {
-  const state = createInitialGameState("germany", "soviet");
-  return { ...state, armies };
-}
-
-function findArmy(state: GameState, armyId: string) {
-  return state.armies.find((candidate) => candidate.id === armyId) ?? failWith(`unknown army "${armyId}"`);
-}
-
-function hasArmy(state: GameState, armyId: string) {
-  return state.armies.some((candidate) => candidate.id === armyId);
-}
+import { gameReducer } from "@/lib/game-state";
+import { attackFields } from "@/lib/movement";
+import { collectIncome } from "@/lib/production";
+import { army, drainAiTurn, field, findArmy, hasArmy, stateWithArmies } from "@/lib/test-utils";
+import type { UnitTypeId } from "@/types";
 
 describe("rngStep", () => {
   it("is deterministic per seed and advances the seed", () => {
@@ -267,11 +234,9 @@ describe("resolveBattle", () => {
 
     // And the staged endTurn composes cleanly over a captured state: plan,
     // drain every aiStep, and the turn rolls over.
-    let afterEnd = gameReducer(captured, { type: "endTurn" });
-    while (afterEnd !== null && afterEnd.aiPlan.length > 0) {
-      afterEnd = gameReducer(afterEnd, { type: "aiStep" });
-    }
-    expect(afterEnd?.turn).toBe(captured.turn + 1);
+    const planned = gameReducer(captured, { type: "endTurn" });
+    if (planned === null) throw new Error("planned state is null");
+    expect(drainAiTurn(planned).turn).toBe(captured.turn + 1);
   });
 
   it("is fully deterministic per seed", () => {

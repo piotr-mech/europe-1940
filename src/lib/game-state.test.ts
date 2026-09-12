@@ -4,21 +4,11 @@ import { getGameData } from "@/lib/game-data";
 import { createInitialGameState, dominantUnitType, gameReducer } from "@/lib/game-state";
 import { armySpeed } from "@/lib/movement";
 import { applyProductionOrder } from "@/lib/production";
+import { drainAiTurn } from "@/lib/test-utils";
 import type { Army, CountryId, GameState, ResourceBag } from "@/types";
 
 const gameData = getGameData();
 const COUNTRY_IDS: readonly CountryId[] = ["germany", "soviet"];
-
-/** Applies aiStep until the AI turn drains — the player's turn has begun. */
-function drainAiTurn(state: GameState): GameState {
-  let current = state;
-  while (current.aiPlan.length > 0) {
-    const next = gameReducer(current, { type: "aiStep" });
-    if (next === null) break;
-    current = next;
-  }
-  return current;
-}
 
 /** Summed city income of the fields a country initially owns. */
 function startingIncome(countryId: CountryId): ResourceBag {
