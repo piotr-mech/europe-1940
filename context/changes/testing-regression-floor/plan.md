@@ -278,24 +278,24 @@ No data migration. Persistence compatibility is a constraint, not a change: old 
 
 #### Automated
 
-- [x] 1.1 Full suite green with identical test count after helper extraction (`npm test`)
-- [x] 1.2 Lint passes (`npm run lint`)
+- [x] 1.1 Full suite green with identical test count after helper extraction (`npm test`) — 801f542
+- [x] 1.2 Lint passes (`npm run lint`) — 801f542
 
 #### Manual
 
-- [x] 1.3 Diff review: only helper extraction + imports, no assertion edits
+- [x] 1.3 Diff review: only helper extraction + imports, no assertion edits — 801f542
 
 ### Phase 2: Observable Dropped-Action Tracing + aiStep Tests
 
 #### Automated
 
-- [ ] 2.1 Skipped-action trace lands in aiTurnLog; suite green (`npm test`)
-- [ ] 2.2 Persistence round-trips unaffected incl. one save containing a skipped entry
-- [ ] 2.3 Build + lint green (`npm run build`, `npm run lint`)
+- [x] 2.1 Skipped-action trace lands in aiTurnLog; suite green (`npm test`)
+- [x] 2.2 Persistence round-trips unaffected incl. one save containing a skipped entry
+- [x] 2.3 Build + lint green (`npm run build`, `npm run lint`)
 
 #### Manual
 
-- [ ] 2.4 Dev playthrough: AI turn summary renders without errors after the state change
+- [x] 2.4 Dev playthrough: AI turn summary renders without errors after the state change
 
 ### Phase 3: Battle Invariant Sweep + Defensive Branches
 

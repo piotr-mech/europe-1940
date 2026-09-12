@@ -272,33 +272,45 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
             break;
         }
       } catch (error) {
-        // An illegal planned action (the world changed under the plan): drop
-        // it and move on — the AI is not fatal. Developer errors propagate.
-        if (isDomainError(error)) return { ...state, aiPlan: rest };
-        throw error;
+        // An illegal planned action (the world changed under the plan): drop it
+        // and move on — the AI is not fatal. The skip leaves a "skipped" trace
+        // in aiTurnLog so the drop is observable, never silent. Developer
+        // errors propagate (lesson: bare-catch masks them).
+        if (!isDomainError(error)) throw error;
+        next = { ...state, aiTurnLog: [...state.aiTurnLog, { kind: "skipped", action }] };
+        return aiStepTail(next, rest);
       }
       const aiTurnLog = [...state.aiTurnLog, aiLogEntry(state, action, next)];
-      const settled = withVictoryCheck(next);
-      if (settled.winner !== null) {
-        // The deciding capture happened mid-replay (S-07): the campaign is over,
-        // so skip the turn rollover and movement reset — aiTurnLog stays for the
-        // summary and aiPlan is cleared, which stops the replay driver by itself.
-        return { ...settled, aiTurnLog };
-      }
-      if (rest.length === 0) {
-        // The AI turn ends: reset movement (the FR-011 cap applies — S-05)
-        // and roll over to the player's turn.
-        return {
-          ...next,
-          aiPlan: [],
-          aiTurnLog,
-          turn: next.turn + 1,
-          armies: next.armies.map((army) => ({ ...army, movementPoints: movementAllowance(next, army) })),
-        };
-      }
-      return { ...next, aiPlan: rest, aiTurnLog };
+      return aiStepTail({ ...next, aiTurnLog }, rest);
     }
   }
+}
+
+/**
+ * The tail shared by the executed and skipped paths of `aiStep`: the victory
+ * check, then either the turn rollover with movement reset (queue drained —
+ * also when the drained-last action was skipped, so a dropped action can
+ * never stall the campaign) or staging the remaining plan.
+ */
+function aiStepTail(state: GameState, rest: AiAction[]): GameState {
+  const settled = withVictoryCheck(state);
+  if (settled.winner !== null) {
+    // The deciding capture happened mid-replay (S-07): the campaign is over,
+    // so skip the turn rollover and movement reset — aiTurnLog stays for the
+    // summary and aiPlan is cleared, which stops the replay driver by itself.
+    return settled;
+  }
+  if (rest.length === 0) {
+    // The AI turn ends: reset movement (the FR-011 cap applies — S-05)
+    // and roll over to the player's turn.
+    return {
+      ...state,
+      aiPlan: [],
+      turn: state.turn + 1,
+      armies: state.armies.map((army) => ({ ...army, movementPoints: movementAllowance(state, army) })),
+    };
+  }
+  return { ...state, aiPlan: rest };
 }
 
 /** The observable outcome of one executed AI action, for the turn summary. */
@@ -312,21 +324,14 @@ function aiLogEntry(before: GameState, action: AiAction, after: GameState): AiTu
       return { kind: "move", armyId: action.armyId, fromFieldId, toFieldId: action.targetFieldId, capturedCity };
     }
     case "attack": {
-      // A fresh report object in the AI's slot means the battle happened; a
-      // backstop-swallowed attack leaves the previous report in place.
-      const beforeReport = before.lastBattleReportByCountry[after.aiCountryId];
+      // The executor's success path always writes a fresh report into the AI's
+      // slot; an attack that was dropped never reaches this function — it is
+      // traced as a "skipped" entry by the aiStep catch instead.
       const report = after.lastBattleReportByCountry[after.aiCountryId];
-      if (report !== null && report !== beforeReport && report.attackerArmyId === action.armyId) {
-        return { kind: "battle", report };
+      if (report === null) {
+        throw new Error(`executed attack by "${action.armyId}" left no battle report`);
       }
-      const fromFieldId = before.armies.find((army) => army.id === action.armyId)?.fieldId ?? action.targetFieldId;
-      return {
-        kind: "move",
-        armyId: action.armyId,
-        fromFieldId,
-        toFieldId: action.targetFieldId,
-        capturedCity: false,
-      };
+      return { kind: "battle", report };
     }
     case "order":
       return { kind: "order", fieldId: action.fieldId, unitTypeId: action.unitTypeId };

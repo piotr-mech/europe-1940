@@ -108,6 +108,32 @@ describe("loadGame", () => {
     expect(loadGame()?.aiPlan).toHaveLength(1);
   });
 
+  it("round-trips a save whose aiTurnLog contains a skipped-action trace", () => {
+    const base = playedState();
+    const withSkip: GameState = {
+      ...base,
+      aiTurnLog: [
+        ...base.aiTurnLog,
+        { kind: "skipped", action: { kind: "move", armyId: "nope", targetFieldId: "berlin" } },
+      ],
+    };
+    saveGame(withSkip);
+
+    expect(loadGame()).toEqual(withSkip);
+  });
+
+  it("rejects a skipped entry carrying a malformed action and removes the entry", () => {
+    const base = playedState();
+    const broken = {
+      ...base,
+      aiTurnLog: [...base.aiTurnLog, { kind: "skipped", action: { kind: "move", armyId: 7 } }],
+    };
+    plantEntry({ version: SAVE_VERSION, state: broken });
+
+    expect(loadGame()).toBeNull();
+    expect(storage.getItem(SAVE_STORAGE_KEY)).toBeNull();
+  });
+
   it("rejects a future save version and removes the entry", () => {
     plantEntry({ version: SAVE_VERSION + 1, state: createInitialGameState("germany", "soviet") });
 

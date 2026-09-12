@@ -463,12 +463,142 @@ describe("gameReducer", () => {
     const skipped = gameReducer(state, { type: "aiStep" });
     expect(skipped?.aiPlan).toEqual([{ kind: "order", fieldId: "moscow", unitTypeId: "infantry" }]);
     expect(skipped?.turn).toBe(1); // not the last action: no rollover yet
-    expect(skipped?.aiTurnLog).toEqual([]); // nothing observable happened
+    // The drop is observable: the skipped action carries a trace entry (testing-regression-floor).
+    expect(skipped?.aiTurnLog).toEqual([
+      { kind: "skipped", action: { kind: "move", armyId: "nope", targetFieldId: "berlin" } },
+    ]);
 
     const drained = gameReducer(skipped, { type: "aiStep" });
     expect(drained?.aiPlan).toEqual([]);
     expect(drained?.turn).toBe(2); // last action done: rollover + movement reset
     expect(drained?.productionQueues.moscow).toEqual([{ typeId: "infantry", remainingTurns: 1 }]);
+  });
+
+  it("aiStep traces a stale planned attack whose target an earlier action destroyed (G3, seed 1)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // Two Soviet tank armies within reach of Brest; one German defender there.
+    // The first attack destroys the defender and captures the city, so the
+    // second attack targets a field held by the AI's own army — not a battle.
+    const armies = [
+      {
+        id: "R1",
+        owner: "soviet" as const,
+        fieldId: "bug-river",
+        units: Array.from({ length: 8 }, (_, i) => ({ id: `R1-u${i + 1}`, typeId: "tank" as const })),
+        movementPoints: 2,
+      },
+      {
+        id: "R2",
+        owner: "soviet" as const,
+        fieldId: "lublin-plains",
+        units: Array.from({ length: 8 }, (_, i) => ({ id: `R2-u${i + 1}`, typeId: "tank" as const })),
+        movementPoints: 2,
+      },
+      {
+        id: "G1",
+        owner: "germany" as const,
+        fieldId: "brest",
+        units: [{ id: "G1-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+    ];
+    const state: GameState = {
+      ...base,
+      armies,
+      aiPlan: [
+        { kind: "attack", armyId: "R1", targetFieldId: "brest" },
+        { kind: "attack", armyId: "R2", targetFieldId: "brest" },
+      ],
+    };
+
+    const next = drainAiTurn(state);
+
+    expect(next.fieldOwners.brest).toBe("soviet"); // the first attack took the city
+    expect(next.aiTurnLog).toEqual([
+      expect.objectContaining({ kind: "battle" }), // the executed attack
+      { kind: "skipped", action: { kind: "attack", armyId: "R2", targetFieldId: "brest" } },
+    ]);
+    expect(next.turn).toBe(2); // drained: rollover even though the last action was skipped
+  });
+
+  it("aiStep traces an illegal order — the plan's own earlier order took the last slot (G3)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // Brest has a single production slot: the second order was legal against
+    // the planned-from state but not against the world one action later.
+    const state: GameState = {
+      ...base,
+      aiPlan: [
+        { kind: "order", fieldId: "brest", unitTypeId: "infantry" },
+        { kind: "order", fieldId: "brest", unitTypeId: "infantry" },
+      ],
+    };
+
+    const next = drainAiTurn(state);
+
+    expect(next.productionQueues.brest).toEqual([{ typeId: "infantry", remainingTurns: 1 }]);
+    expect(next.aiTurnLog).toEqual([
+      { kind: "order", fieldId: "brest", unitTypeId: "infantry" },
+      { kind: "skipped", action: { kind: "order", fieldId: "brest", unitTypeId: "infantry" } },
+    ]);
+  });
+
+  it("aiStep traces two consecutive skips and still executes the legal action after them (G3)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state: GameState = {
+      ...base,
+      aiPlan: [
+        { kind: "move", armyId: "nope", targetFieldId: "berlin" }, // unknown army: domain error
+        { kind: "attack", armyId: "nope", targetFieldId: "brest" }, // unknown army: domain error
+        { kind: "order", fieldId: "moscow", unitTypeId: "infantry" },
+      ],
+    };
+
+    const next = drainAiTurn(state);
+
+    expect(next.aiTurnLog).toEqual([
+      { kind: "skipped", action: { kind: "move", armyId: "nope", targetFieldId: "berlin" } },
+      { kind: "skipped", action: { kind: "attack", armyId: "nope", targetFieldId: "brest" } },
+      { kind: "order", fieldId: "moscow", unitTypeId: "infantry" },
+    ]);
+    expect(next.turn).toBe(2);
+    expect(next.productionQueues.moscow).toEqual([{ typeId: "infantry", remainingTurns: 1 }]);
+  });
+
+  it("an illegal action as the last plan entry still rolls the turn over (G3)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state: GameState = {
+      ...base,
+      aiPlan: [
+        { kind: "order", fieldId: "moscow", unitTypeId: "infantry" },
+        { kind: "move", armyId: "nope", targetFieldId: "berlin" }, // skipped last entry
+      ],
+    };
+
+    const next = drainAiTurn(state);
+
+    expect(next.aiPlan).toEqual([]);
+    expect(next.turn).toBe(2); // a dropped last action must not stall the campaign
+    for (const army of next.armies) {
+      expect(army.movementPoints).toBe(armySpeed(army)); // movement reset with the rollover
+    }
+  });
+
+  it("aiStep propagates developer errors (lesson: bare catch masks them)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // Corrupted army (units: null) — the strength computation throws TypeError,
+    // which the skip path must NOT swallow.
+    const armies = [
+      { id: "R1", owner: "soviet" as const, fieldId: "bug-river", units: null, movementPoints: 2 },
+      {
+        id: "G1",
+        owner: "germany" as const,
+        fieldId: "brest",
+        units: [{ id: "G1-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+    ];
+    const state = { ...base, armies, aiPlan: [{ kind: "attack", armyId: "R1", targetFieldId: "brest" }] };
+    expect(() => gameReducer(state, { type: "aiStep" })).toThrow();
   });
 
   // --- S-07: victory conditions ---

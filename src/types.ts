@@ -106,7 +106,9 @@ export type AiAction =
 export type AiTurnLogEntry =
   | { kind: "move"; armyId: string; fromFieldId: string; toFieldId: string; capturedCity: boolean }
   | { kind: "battle"; report: BattleReport }
-  | { kind: "order"; fieldId: string; unitTypeId: UnitTypeId };
+  | { kind: "order"; fieldId: string; unitTypeId: UnitTypeId }
+  /** A planned action dropped as illegal at execution time — kept visible so plan/execution mismatch is never silent. */
+  | { kind: "skipped"; action: AiAction };
 
 // --- Battle (S-04) ---
 

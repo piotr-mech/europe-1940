@@ -4,7 +4,17 @@ import { movementCostOf } from "@/lib/movement";
 import { freeProductionSlots, unitCostFor } from "@/lib/production";
 import { isSupplied, movementAllowance } from "@/lib/supply";
 import { UNIT_ICON } from "@/components/game/unit-icons";
-import type { BattleModifier, BattleReport, Country, GameState, ResourceId, TerrainType, UnitTypeId } from "@/types";
+import type {
+  AiAction,
+  AiTurnLogEntry,
+  BattleModifier,
+  BattleReport,
+  Country,
+  GameState,
+  ResourceId,
+  TerrainType,
+  UnitTypeId,
+} from "@/types";
 
 /** What the inspection panel shows (FR-006): a city, a terrain field, or an army. */
 export type SelectedSubject =
@@ -245,6 +255,39 @@ function BattleReportView({ state, report }: BattleReportViewProps) {
   );
 }
 
+/** One line of the AI turn summary in plain Polish, per log entry kind. */
+function aiTurnLogText(
+  entry: AiTurnLogEntry,
+  fieldName: (fieldId: string) => string,
+  unitName: (typeId: UnitTypeId) => string,
+): string {
+  switch (entry.kind) {
+    case "move":
+      return `Armia ${entry.armyId}: ${fieldName(entry.fromFieldId)} → ${fieldName(entry.toFieldId)}${entry.capturedCity ? " — zdobyto miasto" : ""}`;
+    case "battle":
+      return `Bitwa o ${fieldName(entry.report.fieldId)}: ${entry.report.attackerWins ? "zwycięstwo AI" : "porażka AI"} · straty ${entry.report.attackerLosses} : ${entry.report.defenderLosses}`;
+    case "order":
+      return `Zamówienie: ${unitName(entry.unitTypeId)} — ${fieldName(entry.fieldId)}`;
+    case "skipped":
+      return `Pominięto: ${skippedActionText(entry.action, fieldName, unitName)}`;
+  }
+}
+
+function skippedActionText(
+  action: AiAction,
+  fieldName: (fieldId: string) => string,
+  unitName: (typeId: UnitTypeId) => string,
+): string {
+  switch (action.kind) {
+    case "move":
+      return `ruch armii ${action.armyId} → ${fieldName(action.targetFieldId)}`;
+    case "attack":
+      return `atak armii ${action.armyId} → ${fieldName(action.targetFieldId)}`;
+    case "order":
+      return `zamówienie ${unitName(action.unitTypeId)} — ${fieldName(action.fieldId)}`;
+  }
+}
+
 /**
  * The AI turn's summary (S-06, FR-012 NFR): what the opponent did this turn,
  * in plain Polish — shown after the replay finishes, until the player's next
@@ -264,11 +307,7 @@ function AiTurnSummaryView({ state }: { state: GameState }) {
       <ol className="grid gap-1.5 text-sm">
         {state.aiTurnLog.map((entry, index) => (
           <li key={index} className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700">
-            {entry.kind === "move"
-              ? `Armia ${entry.armyId}: ${fieldName(entry.fromFieldId)} → ${fieldName(entry.toFieldId)}${entry.capturedCity ? " — zdobyto miasto" : ""}`
-              : entry.kind === "battle"
-                ? `Bitwa o ${fieldName(entry.report.fieldId)}: ${entry.report.attackerWins ? "zwycięstwo AI" : "porażka AI"} · straty ${entry.report.attackerLosses} : ${entry.report.defenderLosses}`
-                : `Zamówienie: ${unitName(entry.unitTypeId)} — ${fieldName(entry.fieldId)}`}
+            {aiTurnLogText(entry, fieldName, unitName)}
           </li>
         ))}
       </ol>

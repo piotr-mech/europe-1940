@@ -138,6 +138,20 @@ function isBattleReportShaped(value: unknown): boolean {
   );
 }
 
+/** Structural check for one AiAction — planned, or nested in a "skipped" log entry. */
+function isAiActionShaped(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  switch (value.kind) {
+    case "move":
+    case "attack":
+      return typeof value.armyId === "string" && typeof value.targetFieldId === "string";
+    case "order":
+      return typeof value.fieldId === "string" && isUnitTypeId(value.unitTypeId);
+    default:
+      return false;
+  }
+}
+
 function isValidGameState(value: unknown): value is GameState {
   if (!isRecord(value)) return false;
   if (!Number.isInteger(value.turn) || value.turn < 1) return false;
@@ -193,23 +207,18 @@ function isValidGameState(value: unknown): value is GameState {
 
   if (!Array.isArray(value.aiPlan)) return false;
   for (const action of value.aiPlan) {
-    if (!isRecord(action)) return false;
-    switch (action.kind) {
-      case "move":
-      case "attack":
-        if (typeof action.armyId !== "string" || typeof action.targetFieldId !== "string") return false;
-        break;
-      case "order":
-        if (typeof action.fieldId !== "string" || !isUnitTypeId(action.unitTypeId)) return false;
-        break;
-      default:
-        return false;
-    }
+    if (!isAiActionShaped(action)) return false;
   }
 
   if (!Array.isArray(value.aiTurnLog)) return false;
   for (const entry of value.aiTurnLog) {
-    if (!isRecord(entry) || !["move", "battle", "order"].includes(entry.kind as string)) return false;
+    if (!isRecord(entry)) return false;
+    if (entry.kind === "skipped") {
+      // A dropped planned action traced for observability; carry the action's shape.
+      if (!isAiActionShaped(entry.action)) return false;
+    } else if (!["move", "battle", "order"].includes(entry.kind as string)) {
+      return false;
+    }
   }
 
   if (value.winner !== null && !isCountryId(value.winner)) return false;
