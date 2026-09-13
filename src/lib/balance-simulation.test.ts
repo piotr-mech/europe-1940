@@ -8,6 +8,7 @@ import {
   renderBaselineReport,
   runCampaign,
   runGrid,
+  summarize,
 } from "@/lib/balance-simulation";
 import type { CampaignRecord, CampaignInput } from "@/lib/balance-simulation";
 import type { CountryId } from "@/types";
@@ -109,6 +110,10 @@ describe("baseline grid (mirrored 100-campaign measurement)", () => {
       expect(sample[index]).toEqual(records[index]);
     }
 
+    if (elapsed >= TIME_BUDGET_MS) {
+      // Debugging aid only (plan contract): the aggregate next to the failure.
+      console.info("baseline grid aggregate (budget exceeded):", summarize(records));
+    }
     expect(elapsed, `grid wall time ${Math.round(elapsed)}ms fits the budget`).toBeLessThan(TIME_BUDGET_MS);
   });
 
