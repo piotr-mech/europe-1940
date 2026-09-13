@@ -7,7 +7,7 @@ import { VictoryOverlay } from "@/components/game/VictoryOverlay";
 import { getGameData } from "@/lib/game-data";
 import { gameReducer, inputBlocked, isDomainError } from "@/lib/game-state";
 import { attackFields, reachableFields } from "@/lib/movement";
-import { clearGame, loadGame, persistDecision, saveGame } from "@/lib/persistence";
+import { clearGame, hasSavedGame, loadGame, persistDecision, saveGame } from "@/lib/persistence";
 import { cn } from "@/lib/utils";
 import type { Country, CountryId, GameState, ResourceId } from "@/types";
 
@@ -76,6 +76,11 @@ export function GameScreen() {
   // itself once a save succeeds again, and returns on the next failure after
   // being dismissed.
   const [autosaveFailed, setAutosaveFailed] = useState(false);
+  // Whether a saved campaign sits in storage — drives the setup screen's
+  // resume note and its explicit delete affordance (the player-facing Delete
+  // half of the save's CRUD). Synced by the autosave effect below, never by
+  // the render: storage writes are its side effect, this is their mirror.
+  const [savedCampaign, setSavedCampaign] = useState(hasSavedGame);
 
   // Derived before the setup-screen split so the replay driver hook sits at
   // the top level (hooks cannot follow a conditional return).
@@ -105,19 +110,24 @@ export function GameScreen() {
   // staged `aiStep`, so even a refresh mid-AI-replay resumes correctly. The
   // save/clear/skip decision is persistDecision's contract (tested there):
   // a finished campaign clears the save — never persists a winner — and the
-  // setup screen (`null`) saves nothing. A failed save no longer disappears
-  // silently: it raises the warning banner below.
+  // setup screen (`null`) saves nothing, so the saved-campaign flag keeps its
+  // previous value there (exiting mid-campaign keeps the save, post-victory
+  // storage is already empty). A failed save no longer disappears silently:
+  // it raises the warning banner below.
   useEffect(() => {
     if (state === null) return; // "skip": the setup screen saves nothing
     if (persistDecision(state) === "clear") {
       clearGame();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSavedCampaign(false);
       return;
     }
-    // The new value comes from the storage write's outcome (an external side
+    // The new values come from the storage write's outcome (an external side
     // effect), not from props/state — there is no render-derived source to
-    // derive it from, and it only changes when that outcome changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAutosaveFailed(saveGame(state) === "failed");
+    // derive them from, and they only change when that outcome changes.
+    const saveResult = saveGame(state);
+    setSavedCampaign(saveResult === "saved");
+    setAutosaveFailed(saveResult === "failed");
   }, [state]);
 
   // Picking a side in one group swaps the other, so the two can never be equal.
@@ -176,6 +186,27 @@ export function GameScreen() {
         >
           Rozpocznij grę
         </button>
+
+        {savedCampaign && (
+          /* A kept save meets the player here after "Menu główne" (the exit is
+             non-destructive) — say so, and offer the explicit Delete: dropping
+             the campaign is a deliberate act, not a side effect of leaving. */
+          <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-sm text-slate-600">
+              Masz zapisaną kampanię — odświeżenie strony ją wznowi, nowa gra ją nadpisze.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                clearGame();
+                setSavedCampaign(false);
+              }}
+              className="mt-2 w-full rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
+            >
+              Usuń zapisaną kampanię
+            </button>
+          </div>
+        )}
 
         {/* Exit to the landing page: the autosave (if any) is untouched —
             returning to /game later resumes the saved campaign (FR-014). */}

@@ -99,6 +99,23 @@ export function loadGame(): GameState | null {
   return envelope.state;
 }
 
+/**
+ * A non-destructive peek: does a saved campaign exist? Presence-only — no
+ * version check, no validation, nothing discarded — so the setup screen can
+ * offer the explicit delete affordance even for a payload loadGame would
+ * reject (deleting is exactly how the player drops a dead save).
+ */
+export function hasSavedGame(): boolean {
+  const storage = getStorage();
+  if (storage === null) return false;
+  try {
+    return storage.getItem(SAVE_STORAGE_KEY) !== null;
+  } catch (error) {
+    if (error instanceof DOMException) return false;
+    throw error;
+  }
+}
+
 /** Removes the stored entry (idempotent). */
 export function clearGame(): void {
   const storage = getStorage();

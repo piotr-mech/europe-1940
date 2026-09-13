@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createInitialGameState, gameReducer } from "@/lib/game-state";
-import { clearGame, loadGame, persistDecision, SAVE_STORAGE_KEY, SAVE_VERSION, saveGame } from "@/lib/persistence";
+import {
+  clearGame,
+  hasSavedGame,
+  loadGame,
+  persistDecision,
+  SAVE_STORAGE_KEY,
+  SAVE_VERSION,
+  saveGame,
+} from "@/lib/persistence";
 import { drainAiTurn, failWith, MemoryStorage } from "@/lib/test-utils";
 import type { GameState } from "@/types";
 
@@ -279,6 +287,48 @@ describe("loadGame", () => {
     vi.stubGlobal("localStorage", undefined);
 
     expect(loadGame()).toBeNull();
+  });
+});
+
+describe("hasSavedGame", () => {
+  it("reports false when no save exists", () => {
+    expect(hasSavedGame()).toBe(false);
+  });
+
+  it("reports true after saveGame", () => {
+    saveGame(createInitialGameState("germany", "soviet"));
+    expect(hasSavedGame()).toBe(true);
+  });
+
+  it("reports false after clearGame", () => {
+    saveGame(createInitialGameState("germany", "soviet"));
+    clearGame();
+    expect(hasSavedGame()).toBe(false);
+  });
+
+  it("is presence-only — a corrupt entry still reports true; deleting is how the player drops it", () => {
+    storage.setItem(SAVE_STORAGE_KEY, "{not json at all");
+    expect(hasSavedGame()).toBe(true);
+    expect(loadGame()).toBeNull(); // loadGame discarded it, but the peek made no such promise
+  });
+
+  it("swallows a security-blocked read instead of crashing", () => {
+    vi.stubGlobal(
+      "localStorage",
+      new (class extends MemoryStorage {
+        public override getItem(): never {
+          throw new DOMException("blocked", "SecurityError");
+        }
+      })(),
+    );
+
+    expect(hasSavedGame()).toBe(false);
+  });
+
+  it("is a no-op false when storage is unavailable", () => {
+    vi.stubGlobal("localStorage", undefined);
+
+    expect(hasSavedGame()).toBe(false);
   });
 });
 
