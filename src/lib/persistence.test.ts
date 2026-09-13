@@ -92,16 +92,17 @@ describe("persistDecision", () => {
 });
 
 describe("saveGame", () => {
-  it("stores a versioned envelope", () => {
+  it("stores a versioned envelope and reports saved", () => {
     const state = createInitialGameState("germany", "soviet");
-    saveGame(state);
+    const result = saveGame(state);
+    expect(result).toBe("saved");
 
     const stored = storage.getItem(SAVE_STORAGE_KEY);
     expect(stored).not.toBeNull();
     expect(JSON.parse(stored ?? "null")).toEqual({ version: SAVE_VERSION, state });
   });
 
-  it("swallows quota-exceeded instead of crashing the game", () => {
+  it("reports quota-exceeded as failed instead of crashing the game — the failure is not swallowed", () => {
     vi.stubGlobal(
       "localStorage",
       new (class extends MemoryStorage {
@@ -114,14 +115,16 @@ describe("saveGame", () => {
     expect(() => {
       saveGame(createInitialGameState("germany", "soviet"));
     }).not.toThrow();
+    expect(saveGame(createInitialGameState("germany", "soviet"))).toBe("failed");
   });
 
-  it("is a no-op when storage is unavailable", () => {
+  it("reports failed when storage is unavailable — nothing is persisted, the caller must know", () => {
     vi.stubGlobal("localStorage", undefined);
 
     expect(() => {
       saveGame(createInitialGameState("germany", "soviet"));
     }).not.toThrow();
+    expect(saveGame(createInitialGameState("germany", "soviet"))).toBe("failed");
   });
 });
 

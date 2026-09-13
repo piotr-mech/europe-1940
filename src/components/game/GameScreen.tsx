@@ -72,6 +72,10 @@ export function GameScreen() {
   // The victory overlay (S-07) is derived like the popups; dismissal ("Zobacz
   // mapę") leaves the read-only final map until a new game starts.
   const [victoryDismissed, setVictoryDismissed] = useState(false);
+  // A failed autosave is surfaced, never swallowed (FR-014): the banner clears
+  // itself once a save succeeds again, and returns on the next failure after
+  // being dismissed.
+  const [autosaveFailed, setAutosaveFailed] = useState(false);
 
   // Derived before the setup-screen split so the replay driver hook sits at
   // the top level (hooks cannot follow a conditional return).
@@ -101,14 +105,19 @@ export function GameScreen() {
   // staged `aiStep`, so even a refresh mid-AI-replay resumes correctly. The
   // save/clear/skip decision is persistDecision's contract (tested there):
   // a finished campaign clears the save — never persists a winner — and the
-  // setup screen (`null`) saves nothing.
+  // setup screen (`null`) saves nothing. A failed save no longer disappears
+  // silently: it raises the warning banner below.
   useEffect(() => {
     if (state === null) return; // "skip": the setup screen saves nothing
     if (persistDecision(state) === "clear") {
       clearGame();
       return;
     }
-    saveGame(state);
+    // The new value comes from the storage write's outcome (an external side
+    // effect), not from props/state — there is no render-derived source to
+    // derive it from, and it only changes when that outcome changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAutosaveFailed(saveGame(state) === "failed");
   }, [state]);
 
   // Picking a side in one group swaps the other, so the two can never be equal.
@@ -278,6 +287,28 @@ export function GameScreen() {
           </button>
         )}
       </header>
+      {autosaveFailed && (
+        // The autosave warning (FR-014): environmental storage failures must
+        // not cost the player their campaign in silence — warn, stay playable.
+        <div
+          role="alert"
+          className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          <span>
+            <strong className="font-semibold">Automatyczny zapis nie działa.</strong> Po odświeżeniu strony kampania
+            wróci do ostatniego zapisanego stanu — obecna rozgrywka nie jest zapisywana.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setAutosaveFailed(false);
+            }}
+            className="ml-auto rounded-lg border border-amber-400 px-3 py-1.5 font-semibold transition-colors hover:bg-amber-100"
+          >
+            Rozumiem
+          </button>
+        </div>
+      )}
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
           <BoardMap

@@ -43,17 +43,26 @@ function getStorage(): Storage | null {
   }
 }
 
-/** Persists `state` under a versioned envelope. Environmental storage failures (quota, blocked storage) are swallowed — the game keeps playing without persistence. */
-export function saveGame(state: GameState): void {
+/** The outcome of a save attempt the caller must act on (a swallowed failure loses the campaign silently). */
+export type SaveResult = "saved" | "failed";
+
+/**
+ * Persists `state` under a versioned envelope. Environmental storage failures
+ * (quota, blocked storage, no storage) do not interrupt the game — but they are
+ * reported as `"failed"` so the UI can warn the player that nothing is being
+ * persisted; developer errors still propagate.
+ */
+export function saveGame(state: GameState): SaveResult {
   const storage = getStorage();
-  if (storage === null) return;
+  if (storage === null) return "failed";
   const envelope: SaveEnvelope = { version: SAVE_VERSION, state };
   try {
     storage.setItem(SAVE_STORAGE_KEY, JSON.stringify(envelope));
   } catch (error) {
-    if (error instanceof DOMException) return;
+    if (error instanceof DOMException) return "failed";
     throw error;
   }
+  return "saved";
 }
 
 /** Returns the saved campaign, or null when no save exists, the version differs, or the payload fails structural validation — in every failure case the stored entry is removed. */
