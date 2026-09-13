@@ -1,10 +1,10 @@
 ---
 change_id: autosave-failure-surfacing
 title: Surface swallowed autosave failures (saveGame contract + UI banner)
-status: implementing
+status: archived
 created: 2026-09-14
 updated: 2026-09-14
-archived_at: null
+archived_at: 2026-09-14T19:00:00+02:00
 ---
 
 ## Notes
