@@ -435,8 +435,8 @@ behavior-identical (Phase 1 manual check confirms).
 
 #### Automated
 
-- [x] 4.1 `npm test` + `npm run lint` + `npm run build` all green (final run)
+- [x] 4.1 `npm test` + `npm run lint` + `npm run build` all green (final run) — 47cc04e
 
 #### Manual
 
-- [x] 4.2 `test-plan.md` §6.4 written, §6.6 Phase 3 note appended, §5 gate marked enforced, §8 ledger bumped
+- [x] 4.2 `test-plan.md` §6.4 written, §6.6 Phase 3 note appended, §5 gate marked enforced, §8 ledger bumped — 47cc04e
