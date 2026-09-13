@@ -89,7 +89,9 @@ describe("baseline grid (mirrored 100-campaign measurement)", () => {
   // so CI slowdowns do not flake the budget assertion.
   const TIME_BUDGET_MS = 15_000;
 
-  it("classifies all 100 campaigns, stays deterministic, and fits the time budget", () => {
+  // 100 full campaigns exceed Vitest's 5s default on CI runners — the test's
+  // own budget (TIME_BUDGET_MS below) is the meaningful ceiling, not the runner.
+  it("classifies all 100 campaigns, stays deterministic, and fits the time budget", { timeout: 120_000 }, () => {
     const started = performance.now();
     const records = runGrid();
     const elapsed = performance.now() - started;
@@ -117,13 +119,17 @@ describe("baseline grid (mirrored 100-campaign measurement)", () => {
     expect(elapsed, `grid wall time ${Math.round(elapsed)}ms fits the budget`).toBeLessThan(TIME_BUDGET_MS);
   });
 
-  it("renders the committed baseline report byte-identically (or writes it on BALANCE_WRITE=1)", () => {
-    const rendered = renderBaselineReport(runGrid());
-    if (process.env.BALANCE_WRITE === "1") {
-      writeFileSync(BASELINE_REPORT_PATH, rendered, "utf8");
-      return; // generation run: the next ordinary run asserts the byte equality
-    }
-    const committed = readFileSync(BASELINE_REPORT_PATH, "utf8");
-    expect(rendered).toBe(committed);
-  });
+  it(
+    "renders the committed baseline report byte-identically (or writes it on BALANCE_WRITE=1)",
+    { timeout: 120_000 },
+    () => {
+      const rendered = renderBaselineReport(runGrid());
+      if (process.env.BALANCE_WRITE === "1") {
+        writeFileSync(BASELINE_REPORT_PATH, rendered, "utf8");
+        return; // generation run: the next ordinary run asserts the byte equality
+      }
+      const committed = readFileSync(BASELINE_REPORT_PATH, "utf8");
+      expect(rendered).toBe(committed);
+    },
+  );
 });

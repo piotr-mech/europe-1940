@@ -33,7 +33,9 @@ const VIOLATION_FIXTURE = [
 ].join("\n");
 
 describe("static determinism rule (risk #5)", () => {
-  it("reports zero determinism violations across the engine module set", async () => {
+  // Cold-starting the type-checked ESLint engine in-process exceeds Vitest's
+  // 5s default on CI runners (fine locally) — the rule itself is fast.
+  it("reports zero determinism violations across the engine module set", { timeout: 60_000 }, async () => {
     const eslint = new ESLint({ cwd: process.cwd() });
     const results = await eslint.lintFiles(DETERMINISM_ENGINE_FILES);
 
