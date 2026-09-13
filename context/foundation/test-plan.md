@@ -98,8 +98,8 @@ orchestrator updates Status as artifacts appear on disk.
 
 | # | Phase name | Goal (one line) | Risks covered | Test types | Status | Change folder |
 |---|---|---|---|---|---|---|
-| 1 | Regression floor for hot-spots | Freeze battle-resolution and AI-decision behavior where churn is highest, so future changes are not blind | #2, #3 | unit (characterization/golden) | planned | testing-regression-floor |
-| 2 | Balance simulation harness | Prove (not assert) the game is not trivial: seeded full-campaign simulations with independent oracles | #1 | integration (in-process simulation) | not started | — |
+| 1 | Regression floor for hot-spots | Freeze battle-resolution and AI-decision behavior where churn is highest, so future changes are not blind | #2, #3 | unit (characterization/golden) | complete | testing-regression-floor |
+| 2 | Balance simulation harness | Prove (not assert) the game is not trivial: seeded full-campaign simulations with independent oracles | #1 | integration (in-process simulation) | complete | testing-balance-simulation |
 | 3 | Persistence & determinism invariants | Save/resume survives schema evolution; determinism becomes a enforced invariant, not an accident | #4, #5 | unit + integration + static rule | not started | — |
 | 4 | Campaign end-to-end integrity | The full turn/campaign flow as one tested sequence: phase order, input blocking, victory, freeze, reset | #6 | integration | not started | — |
 | 5 | AI-native review + quality gates | Selective multimodal review of the 1–3 critical screens (map readability is the PRD's most important assumption); verify gates complete in CI | #1 (readability NFR), cross-cutting | AI-native visual review (selective), gates | not started | — |
