@@ -397,19 +397,19 @@ reference-identical by design; verified by full suite + manual pass).
 
 #### Automated
 
-- [x] 3.1 Scripted full cycle on near-victory fixture (terminal + freeze + reset + in-cycle economy observables)
-- [x] 3.2 Multi-seed structural soak (5 seeds × ~8 turns, invariants at every boundary, no-winner legal, no stuck campaigns)
+- [x] 3.1 Scripted full cycle on near-victory fixture (terminal + freeze + reset + in-cycle economy observables) — 8422102
+- [x] 3.2 Multi-seed structural soak (5 seeds × ~8 turns, invariants at every boundary, no-winner legal, no stuck campaigns) — 8422102
 
 #### Manual
 
-- [x] 3.3 `npm run dev`: one hand-played turn matches the scripted observables
+- [x] 3.3 `npm run dev`: one hand-played turn matches the scripted observables — 8422102
 
 ### Phase 4: Cookbook & Plan Sync
 
 #### Automated
 
-- [ ] 4.1 `npm test` + `npm run lint` + `npm run build` all green (final run)
+- [x] 4.1 `npm test` + `npm run lint` + `npm run build` all green (final run)
 
 #### Manual
 
-- [ ] 4.2 `test-plan.md` §6.6 Phase 4 note appended (§6.3 reference + §8 ledger if §6.3 changed)
+- [x] 4.2 `test-plan.md` §6.6 Phase 4 note appended (§6.3 reference + §8 ledger if §6.3 changed)

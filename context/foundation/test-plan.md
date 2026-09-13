@@ -184,6 +184,7 @@ the relevant rollout phase ships; before that, the sub-section reads
 - **Reference test**: the `baseline grid (mirrored 100-campaign measurement)` describe in `src/lib/balance-simulation.test.ts`.
 - **Mocking policy**: none — drive the real reducer (`endTurn` → capped `drainAiTurn` from `@/lib/test-utils` → role swap between turns). One integer seed per campaign (never wall clock); mirrored = the same seed under both role assignments.
 - **Report artifacts**: render deterministic markdown (no timestamps), commit it under the change folder, and assert byte-identity in the ordinary test run; regenerate with `BALANCE_WRITE=1 npx vitest run src/lib/balance-simulation.test.ts`.
+- **Scripted full cycles (turn/campaign sequencing)**: two-layer pattern in `src/lib/campaign-cycle.test.ts` — (a) a near-victory fixture drives one deterministic cycle to terminal assertions (winner, freeze by reference-equality, reset), (b) a 5-seed acting-player soak runs `assertStructuralInvariants` (from `@/lib/test-utils`) at every phase boundary with `winner === null` legal. Economy expectations are dataset-derived (city incomes, unit costs) — never call-order; UI-level contracts are pinned via pure helpers (`inputBlocked`), not component tests.
 - **When NOT to use**: any behavior a unit test already covers cheaper — single battle mechanics, reducer case semantics, planner priorities (§6.2's characterization layer). Simulation is for emergent, campaign-level properties only.
 - **Run locally**: `npm test` (the grid rides the suite; ~100 campaigns ≈ seconds).
 
@@ -212,6 +213,7 @@ here capturing anything surprising the rollout phase taught.)
 - **Phase 1 (testing-regression-floor)**: writing the floor found and fixed a real bug — an illegal planned action as the *last* AI plan entry never rolled the turn over (stuck campaign). Also two unconstructibles to remember: exact 0.4/0.6 gate probabilities are irrational in k = D/A (bracket them instead), and consecutive chained mulberry32 draws correlate (≈0.07 analytic-vs-empirical deviation near even strengths) — the coupling test excludes that band until draws are decorrelated.
 - **Phase 2 (testing-balance-simulation)**: the first measured baseline says the game is NOT balanced — the USSR wins 100% of decided campaigns (38/38 across 100 mirrored campaigns) and 62% of campaigns stall at the turn cap; Germany's economic head start inverts into a 0.27 income ratio. Bands were deliberately left unpinned (descriptive-first; thresholds from this report would be an implementation-mirror oracle). Research also surfaced dead mechanics — the advertised German "Blitzkrieg" is unimplemented and `bonusVsTank` is never read — queued for the future balance-tuning change.
 - **Phase 3 (testing-persistence-determinism)**: the rollout opened on a pre-existing red — the balance baseline's path had moved with its change folder into `context/archive/`, and the byte-identity test followed it (archive moves must update `BASELINE_REPORT_PATH`). The finished-game invariant moved out of UI effect ordering into a tested pure helper (`persistDecision`). The determinism gate is an explicit 12-file engine allowlist — `src/lib/` is not the reducer path, so scope is a maintained list, not a directory glob.
+- **Phase 4 (testing-campaign-integrity)**: risk #6's "income → production → supply" turned out NOT to be a reducer order — supply is derived and evaluates at the drain-time movement reset; the oracle is observable (dataset-derived incomes, allowance equality), never call-order. Input blocking became the third pure-contract extraction (`inputBlocked`, after `persistDecision`) — the helper encodes the DOCUMENTED UI contract (player actions not offered mid-replay), which is stricter than the reducer's own guards; that gap stays a documented open product decision. The scripted-cycle + soak split worked well: terminal assertions on a near-victory fixture, emergent coverage on 5 acting-player seeds.
 
 ## 7. What We Deliberately Don't Test
 
@@ -230,7 +232,7 @@ contributors should respect these unless the underlying assumption changes.
 
 ## 8. Freshness Ledger
 
-- Strategy (§1–§5) last reviewed: 2026-09-13 (§5 gate live: determinism static rule)
+- Strategy (§1–§5) last reviewed: 2026-09-13 (§5 gate live: determinism static rule; §6.3 scripted-cycle pattern added)
 - Stack versions last verified: 2026-09-09
 - AI-native tool references last verified: 2026-09-09
 
