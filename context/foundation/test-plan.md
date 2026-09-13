@@ -127,7 +127,7 @@ MCP/tools actually exposed in the current session.
 | unit + integration | Vitest | 4.1.11 | configured (`npm test`); 10 test files, clustered in engine/data only |
 | component / DOM testing | none yet | — | deliberately deferred (interview Q4); see §7 before adding |
 | API mocking | n/a | — | no server-side game API (all logic client-side per PRD) |
-| e2e (browser) | Playwright (@playwright/test) | 1.63.0 | added m3l4: `npm run test:e2e`, config with `webServer` on `npm run dev`; three specs — seed (risk #4 reload persistence), input-blocked AI replay (risk #6 rendered UI), autosave-failure banner (risk #4 silent save loss, m3l5); no storageState (no auth, PRD) |
+| e2e (browser) | Playwright (@playwright/test) | 1.63.0 | added m3l4: `npm run test:e2e`, config with `webServer` on `npm run dev`; four specs — seed (risk #4 reload persistence), input-blocked AI replay (risk #6 rendered UI), autosave-failure banner (risk #4 silent save loss, m3l5), exit-to-menu (risk #4 non-destructive exit, m3l5); no storageState (no auth, PRD) |
 | static determinism rule | lint/grep gate | — | none yet — see §3 Phase 3 |
 | (optional) AI-native | multimodal image review via host vision tooling | n/a | selective, 1–3 critical screens only — see §3 Phase 5; when NOT to use: any surface a deterministic test already covers |
 
@@ -242,7 +242,7 @@ contributors should respect these unless the underlying assumption changes.
 
 ## 8. Freshness Ledger
 
-- Strategy (§1–§5) last reviewed: 2026-09-14 (m3l5: risk #4 extended with the swallowed-autosave-failure scenario — `saveGame` now reports `"saved" | "failed"` and the UI warns; third e2e spec added; §4/§5 updated); prior: 2026-09-13 (m3l4 e2e layer, §6.3 scripted-cycle pattern, §5 determinism gate)
+- Strategy (§1–§5) last reviewed: 2026-09-14 (post-m3l5 UI sweep: fourth e2e spec (exit-to-menu, risk #4); the map is now full-viewport with floating HUD (change `fullscreen-map`) — readability NFR under risk #1 applies to the immersive layout; auth scaffold removed (change `remove-auth-scaffold`) — no secret-dependent gates remain; exits are non-destructive by contract (change `game-navigation`)); prior: 2026-09-14 (m3l5 swallowed-autosave fix), 2026-09-13 (m3l4 e2e layer, §6.3 scripted-cycle pattern, §5 determinism gate)
 - Stack versions last verified: 2026-09-13 (Playwright 1.63.0 added, m3l4); prior entries 2026-09-09
 - AI-native tool references last verified: 2026-09-09
 
