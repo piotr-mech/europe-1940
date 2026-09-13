@@ -68,6 +68,52 @@ const astroConfig = tseslint.config({
   },
 });
 
+/**
+ * The reducer-path (engine) modules — the closed set the determinism rule
+ * guards (test-plan §5, risk #5). Adding a module to the reducer path means
+ * adding it here, consciously. Exported so the self-verification test
+ * (src/lib/determinism-rule.test.ts) lints exactly this scope — the rule and
+ * its verification cannot diverge.
+ */
+export const DETERMINISM_ENGINE_FILES = [
+  "src/lib/game-state.ts",
+  "src/lib/battle.ts",
+  "src/lib/ai.ts",
+  "src/lib/movement.ts",
+  "src/lib/production.ts",
+  "src/lib/supply.ts",
+  "src/lib/victory.ts",
+  "src/data/map.ts",
+  "src/data/terrain.ts",
+  "src/data/units.ts",
+  "src/data/countries.ts",
+  "src/types.ts",
+];
+
+const DETERMINISM_MESSAGE =
+  "Determinism contract (test-plan §5): no wall-clock or unseeded randomness in the reducer path — thread state.rngSeed instead.";
+
+const determinismConfig = tseslint.config({
+  files: DETERMINISM_ENGINE_FILES,
+  rules: {
+    "no-restricted-properties": [
+      "error",
+      { object: "Date", property: "now", message: DETERMINISM_MESSAGE },
+      { object: "Math", property: "random", message: DETERMINISM_MESSAGE },
+      { object: "performance", property: "now", message: DETERMINISM_MESSAGE },
+      { object: "crypto", property: "randomUUID", message: DETERMINISM_MESSAGE },
+      { object: "crypto", property: "getRandomValues", message: DETERMINISM_MESSAGE },
+    ],
+    "no-restricted-syntax": [
+      "error",
+      {
+        selector: "NewExpression[callee.type='Identifier'][callee.name='Date']",
+        message: DETERMINISM_MESSAGE,
+      },
+    ],
+  },
+});
+
 export default tseslint.config(
   includeIgnoreFile(gitignorePath),
   baseConfig,
@@ -75,5 +121,6 @@ export default tseslint.config(
   eslintPluginAstro.configs["flat/recommended"],
   ...eslintPluginAstro.configs["flat/jsx-a11y-recommended"],
   astroConfig,
+  determinismConfig,
   eslintPluginPrettier,
 );

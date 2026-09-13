@@ -411,25 +411,25 @@ behavior-identical (Phase 1 manual check confirms).
 
 #### Automated
 
-- [x] 2.1 Late-game state save→load→save round-trip (deep-equal state, byte-identical envelope)
-- [x] 2.2 Replay-equality proof at ≥ 2 mid-replay cut points (equal `aiTurnLog`, deep-equal final state)
-- [x] 2.3 `removeItem` throwing DOMException still degrades without crashing
+- [x] 2.1 Late-game state save→load→save round-trip (deep-equal state, byte-identical envelope) — 01007d0
+- [x] 2.2 Replay-equality proof at ≥ 2 mid-replay cut points (equal `aiTurnLog`, deep-equal final state) — 01007d0
+- [x] 2.3 `removeItem` throwing DOMException still degrades without crashing — 01007d0
 
 #### Manual
 
-- [x] 2.4 `npm run dev`: mid-AI-replay refresh visibly continues the AI queue
+- [x] 2.4 `npm run dev`: mid-AI-replay refresh visibly continues the AI queue — 01007d0
 
 ### Phase 3: Static Determinism Rule
 
 #### Automated
 
-- [ ] 3.1 Self-verification test red → ESLint engine rule green (engine clean, fixture violations caught)
-- [ ] 3.2 Canary check: `Math.random()` in an engine file fails `npm run lint`, then reverted
-- [ ] 3.3 `npm run lint` green on the untouched repo
+- [x] 3.1 Self-verification test red → ESLint engine rule green (engine clean, fixture violations caught)
+- [x] 3.2 Canary check: `Math.random()` in an engine file fails `npm run lint`, then reverted
+- [x] 3.3 `npm run lint` green on the untouched repo
 
 #### Manual
 
-- [ ] 3.4 Review `git diff eslint.config.js`: scope limited to the engine allowlist
+- [x] 3.4 Review `git diff eslint.config.js`: scope limited to the engine allowlist
 
 ### Phase 4: Cookbook & Plan Sync
 
