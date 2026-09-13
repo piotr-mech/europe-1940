@@ -27,6 +27,13 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
+# playwright
+.playwright-cli/
+playwright-report/
+test-results/
+blob-report/
+playwright/.auth/
+
 # raw game assets — processed versions ship from src/assets/ (unit webp)
 # and src/assets/europe-regions.svg
 game_data/obrazki jednostek/
