@@ -1,10 +1,10 @@
 ---
 change_id: testing-persistence-determinism
 title: Persistence & determinism invariants
-status: implemented
+status: archived
 created: 2026-09-13
 updated: 2026-09-13
-archived_at: null
+archived_at: 2026-09-13T15:25:55Z
 ---
 
 ## Notes
