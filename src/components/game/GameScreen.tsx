@@ -268,8 +268,10 @@ export function GameScreen() {
             </span>
           ))}
         </p>
-        {gameOver ? (
-          // The campaign ended (S-07): the header's only action is a fresh game.
+        <div className="ml-auto flex items-center gap-2">
+          {/* Exit to the main menu at any time: the autosave is kept, so a
+              refresh from the menu resumes the exited campaign — nothing is
+              lost by leaving, and starting a new game simply overwrites it. */}
           <button
             type="button"
             onClick={() => {
@@ -278,24 +280,39 @@ export function GameScreen() {
               setSelectedSubject(null);
               setVictoryDismissed(false);
             }}
-            className="ml-auto rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+            className="rounded-lg border border-slate-300 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white"
           >
-            Nowa gra
+            Menu główne
           </button>
-        ) : (
-          <button
-            type="button"
-            disabled={aiTurnActive}
-            onClick={() => {
-              dispatch({ type: "endTurn" });
-              setSelectedArmyId(null);
-              setSelectedSubject(null);
-            }}
-            className="ml-auto rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {aiTurnActive ? "Tura AI…" : "Koniec tury"}
-          </button>
-        )}
+          {gameOver ? (
+            // The campaign ended (S-07): the header's only action is a fresh game.
+            <button
+              type="button"
+              onClick={() => {
+                dispatch({ type: "resetGame" });
+                setSelectedArmyId(null);
+                setSelectedSubject(null);
+                setVictoryDismissed(false);
+              }}
+              className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+            >
+              Nowa gra
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={aiTurnActive}
+              onClick={() => {
+                dispatch({ type: "endTurn" });
+                setSelectedArmyId(null);
+                setSelectedSubject(null);
+              }}
+              className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {aiTurnActive ? "Tura AI…" : "Koniec tury"}
+            </button>
+          )}
+        </div>
       </header>
       {autosaveFailed && (
         // The autosave warning (FR-014): environmental storage failures must
