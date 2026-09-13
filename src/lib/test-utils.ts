@@ -1,3 +1,5 @@
+import { expect } from "vitest";
+
 import { MAP_FIELDS } from "@/data/map";
 import { createInitialGameState, gameReducer } from "@/lib/game-state";
 import { armySpeed } from "@/lib/movement";
@@ -42,13 +44,25 @@ export function hasArmy(state: GameState, armyId: string) {
   return state.armies.some((candidate) => candidate.id === armyId);
 }
 
-/** Applies aiStep until the AI turn drains — the player's turn has begun. */
-export function drainAiTurn(state: GameState): GameState {
+/** A turn's plan is bounded by armies + city slots; anything near this is a stuck loop. */
+const MAX_AI_STEPS_PER_TURN = 50;
+
+/**
+ * Applies aiStep until the AI turn drains — the player's turn has begun.
+ * Capped: a turn that cannot drain (possible only in hand-built states, e.g.
+ * a frozen game with a stale aiPlan) fails loudly instead of hanging.
+ */
+export function drainAiTurn(state: GameState, label = "drainAiTurn"): GameState {
   let current = state;
+  let steps = 0;
   while (current.aiPlan.length > 0) {
     const next = gameReducer(current, { type: "aiStep" });
     if (next === null) break;
     current = next;
+    steps += 1;
+    expect(steps, `${label}: the AI turn must drain within ${MAX_AI_STEPS_PER_TURN} steps`).toBeLessThan(
+      MAX_AI_STEPS_PER_TURN,
+    );
   }
   return current;
 }

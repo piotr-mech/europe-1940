@@ -2,29 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { gameReducer } from "@/lib/game-state";
 import { armySpeed } from "@/lib/movement";
+import { drainAiTurn } from "@/lib/test-utils";
 import type { CountryId, GameState } from "@/types";
 
 const COUNTRY_IDS: readonly CountryId[] = ["germany", "soviet"];
 const SOAK_SEEDS = [1, 7, 42, 99, 123] as const;
 const MAX_TURNS = 60;
-/** A turn's plan is bounded by armies + city slots; anything near this is a stuck loop. */
-const MAX_AI_STEPS_PER_TURN = 50;
-
-/** drainAiTurn with a hard cap — an AI turn that never drains fails loudly instead of hanging. */
-function drainAiTurnCapped(state: GameState, label: string): GameState {
-  let current = state;
-  let steps = 0;
-  while (current.aiPlan.length > 0) {
-    const next = gameReducer(current, { type: "aiStep" });
-    if (next === null) break;
-    current = next;
-    steps += 1;
-    expect(steps, `${label}: the AI turn must drain within ${MAX_AI_STEPS_PER_TURN} steps`).toBeLessThan(
-      MAX_AI_STEPS_PER_TURN,
-    );
-  }
-  return current;
-}
 
 /** The structural invariants that must hold after every single turn of a campaign. */
 function assertStructuralInvariants(state: GameState, label: string): void {
@@ -64,7 +47,7 @@ describe("AI soak simulation (G4: the turn machinery never stalls or corrupts st
         const planLength = planned.aiPlan.length;
         const label = `seed ${seed}, turn ${turn}`;
 
-        const next = drainAiTurnCapped(planned, label);
+        const next = drainAiTurn(planned, label);
         assertStructuralInvariants(next, label);
 
         if (next.winner !== null) {
