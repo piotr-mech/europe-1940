@@ -146,6 +146,24 @@ export function isDomainError(error: unknown): boolean {
 }
 
 /**
+ * The input-blocking contract (S-06: "while the AI queue is non-empty, the UI
+ * must not offer moves/attacks/orders"; S-07: everything is frozen once a
+ * winner is set). Pure so the contract is unit-testable without component
+ * tests — the GameScreen guards delegate to it. For `endTurn`/`aiStep` this
+ * mirrors the reducer's own guards; for the player actions it extends them:
+ * the reducer deliberately leaves move/attack/order unguarded mid-replay
+ * (documented UI-only boundary — testing-campaign-integrity research §C).
+ */
+export function inputBlocked(state: GameState | null, action: GameAction["type"]): boolean {
+  if (action === "startGame" || action === "resetGame") return false;
+  if (state === null) return true; // setup screen: nothing to act on yet
+  if (state.winner !== null) return true; // finished campaign: frozen (S-07)
+  if (action === "aiStep") return state.aiPlan.length === 0; // nothing staged to apply
+  // moveArmy / attackArmy / orderUnit / endTurn: not offered while the AI replays
+  return state.aiPlan.length > 0;
+}
+
+/**
  * S-07 victory check for the success path of ownership-changing actions:
  * snapshots the derived winner into the state the moment a capture completes
  * the condition, clearing `aiPlan` so a mid-replay win stops the AI driver.

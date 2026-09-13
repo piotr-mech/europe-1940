@@ -5,7 +5,7 @@ import { BoardMap } from "@/components/game/BoardMap";
 import { DetailPanel, RESOURCE_LABELS, type SelectedSubject } from "@/components/game/DetailPanel";
 import { VictoryOverlay } from "@/components/game/VictoryOverlay";
 import { getGameData } from "@/lib/game-data";
-import { gameReducer, isDomainError } from "@/lib/game-state";
+import { gameReducer, inputBlocked, isDomainError } from "@/lib/game-state";
 import { attackFields, reachableFields } from "@/lib/movement";
 import { clearGame, loadGame, persistDecision, saveGame } from "@/lib/persistence";
 import { cn } from "@/lib/utils";
@@ -179,13 +179,13 @@ export function GameScreen() {
   // Enemy-occupied fields the selected army can attack (S-04, FR-007).
   const attackTargets = computeAttackTargets(state, selectedArmyId);
   const attack = (targetFieldId: string): void => {
-    if (selectedArmyId === null || aiTurnActive || gameOver) return;
+    if (selectedArmyId === null || inputBlocked(state, "attackArmy")) return;
     dispatch({ type: "attackArmy", armyId: selectedArmyId, targetFieldId });
     setSelectedArmyId(null);
     setSelectedSubject(null); // the battle report takes the panel (S-04)
   };
   const onArmyClick = (armyId: string): void => {
-    if (aiTurnActive || gameOver) return; // no acting inside the AI's turn or after the campaign ended (S-07)
+    if (inputBlocked(state, "moveArmy")) return; // no acting inside the AI's turn or after the campaign ended (S-07) — inputBlocked owns this contract
     const army = state.armies.find((candidate) => candidate.id === armyId);
     // Only the player's own armies create a movement selection.
     if (army?.owner !== state.playerCountryId) {
@@ -205,7 +205,7 @@ export function GameScreen() {
     );
   };
   const onFieldClick = (fieldId: string | null): void => {
-    if (aiTurnActive || gameOver) return; // no acting inside the AI's turn or after the campaign ended (S-07)
+    if (inputBlocked(state, "moveArmy")) return; // no acting inside the AI's turn or after the campaign ended (S-07) — inputBlocked owns this contract
     if (fieldId === null) {
       setSelectedArmyId(null);
       setSelectedSubject(null);

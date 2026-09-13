@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getGameData } from "@/lib/game-data";
-import { createInitialGameState, dominantUnitType, gameReducer } from "@/lib/game-state";
+import { createInitialGameState, dominantUnitType, gameReducer, inputBlocked } from "@/lib/game-state";
 import { armySpeed } from "@/lib/movement";
 import { applyProductionOrder } from "@/lib/production";
 import { drainAiTurn } from "@/lib/test-utils";
@@ -745,5 +745,52 @@ describe("gameReducer", () => {
     const finished: GameState = { ...base, winner: "germany" };
     expect(gameReducer(finished, { type: "resetGame" })).toBeNull();
     expect(gameReducer(base, { type: "resetGame" })).toBeNull();
+  });
+});
+
+describe("inputBlocked (the UI input contract, risk #6)", () => {
+  const PLAYER_ACTIONS = ["moveArmy", "attackArmy", "orderUnit", "endTurn"] as const;
+  const GAMEPLAY_ACTIONS = [...PLAYER_ACTIONS, "aiStep"] as const;
+
+  const fresh = createInitialGameState("germany", "soviet");
+  const midReplay: GameState = {
+    ...fresh,
+    aiPlan: [{ kind: "move", armyId: "R2", targetFieldId: "smolensk" }],
+  };
+  const finished: GameState = { ...fresh, winner: "germany" };
+
+  it("never blocks startGame or resetGame, on any state", () => {
+    for (const action of ["startGame", "resetGame"] as const) {
+      expect(inputBlocked(null, action)).toBe(false);
+      expect(inputBlocked(fresh, action)).toBe(false);
+      expect(inputBlocked(midReplay, action)).toBe(false);
+      expect(inputBlocked(finished, action)).toBe(false);
+    }
+  });
+
+  it("blocks every gameplay action on the setup screen (null state)", () => {
+    for (const action of GAMEPLAY_ACTIONS) {
+      expect(inputBlocked(null, action)).toBe(true);
+    }
+  });
+
+  it("offers player actions on a fresh campaign; aiStep has nothing staged", () => {
+    for (const action of PLAYER_ACTIONS) {
+      expect(inputBlocked(fresh, action)).toBe(false);
+    }
+    expect(inputBlocked(fresh, "aiStep")).toBe(true);
+  });
+
+  it("blocks player actions while the AI queue is non-empty (the documented UI contract)", () => {
+    for (const action of PLAYER_ACTIONS) {
+      expect(inputBlocked(midReplay, action)).toBe(true);
+    }
+    expect(inputBlocked(midReplay, "aiStep")).toBe(false);
+  });
+
+  it("blocks everything except reset/start once a winner is set (frozen campaign)", () => {
+    for (const action of GAMEPLAY_ACTIONS) {
+      expect(inputBlocked(finished, action)).toBe(true);
+    }
   });
 });
