@@ -1,10 +1,10 @@
 # Repository Guidelines
 
-EUROPE 1940 — a turn-based, board-game-style strategy game (solo vs rule-based AI) running in the browser. Stack: Astro 6 SSR + React 19 islands + TypeScript + Tailwind 4 + Supabase (unused by the game) + Cloudflare Workers. Product contract: @context/foundation/prd.md.
+EUROPE 1940 — a turn-based, board-game-style strategy game (solo vs rule-based AI) running in the browser. Stack: Astro 6 SSR + React 19 islands + TypeScript + Tailwind 4 + Cloudflare Workers. Product contract: @context/foundation/prd.md.
 
 ## Hard rules
 
-- The game has **no auth** — anyone with the URL plays (PRD Access Control). Do not extend the scaffold's auth flow (`src/middleware.ts`, `src/pages/auth/`, `src/pages/api/auth/`); treat it as removable reference code.
+- The game has **no auth** — anyone with the URL plays (PRD Access Control). The starter's Supabase auth scaffold (middleware, auth pages/API, dashboard, `supabase/` config) has been removed; do not reintroduce auth without a PRD change.
 - Game state is client-side; a campaign must survive page refresh (PRD FR-014).
 - Never modify anything under `context/archive/` (immutable 10xWorkflow trail).
 - Every game rule must be explainable in one sentence — prefer simplifying over adding systems (PRD Non-Goals).
@@ -23,13 +23,12 @@ EUROPE 1940 — a turn-based, board-game-style strategy game (solo vs rule-based
 - `src/components/` — Astro for static content/layout; React only for interactive islands (game board). `src/components/ui/` holds shadcn/ui (new-york). No Next.js directives.
 - `src/lib/` — services/helpers (game rules engine belongs here); shared types in `src/types.ts`.
 - `@/*` maps to `./src/*`. Merge Tailwind classes only via `cn()` from `@/lib/utils`.
-- `supabase/migrations/` — naming `YYYYMMDDHHmmss_short_description.sql`; RLS required on new tables.
 - `context/` — 10xWorkflow docs (PRD, tech-stack, shape-notes); consult before scoping changes.
 
 ## Environment & CI
 
-- Node 22.14.0 (@.nvmrc). Secrets `SUPABASE_URL`/`SUPABASE_KEY` via `.env` / `.dev.vars` (gitignored) — see @README.md.
-- CI (@.github/workflows/ci.yml): lint + build on push/PR to `main`; build step reads those secrets as repo secrets.
+- Node 22.14.0 (@.nvmrc). No secrets required — the game is fully client-side.
+- CI (@.github/workflows/ci.yml): lint + tests + E2E + build on push/PR to `main`.
 
 <!-- BEGIN @przeprogramowani/10x-cli -->
 

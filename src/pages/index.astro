@@ -1,8 +1,36 @@
 ---
-import Welcome from "@/components/Welcome.astro";
 import Layout from "@/layouts/Layout.astro";
 ---
 
-<Layout>
-  <Welcome />
+<Layout title="EUROPE 1940 — strategiczna gra planszowa w przeglądarce">
+  <main
+    class="flex min-h-screen flex-col items-center justify-center bg-slate-900 px-6 py-16 text-center text-slate-100"
+  >
+    <p class="mb-3 text-sm font-semibold tracking-[0.3em] text-amber-400 uppercase">1940 · Europa</p>
+    <h1 class="text-5xl font-bold tracking-tight sm:text-6xl">EUROPE 1940</h1>
+    <p class="mt-5 max-w-xl text-lg text-slate-300">
+      Turowa strategiczna gra w stylu planszowym — sam przeciwko komputerowemu przeciwnikowi, prosto w przeglądarce. Bez
+      zakładania konta: klikasz i grasz.
+    </p>
+    <a
+      href="/game"
+      class="mt-9 rounded-lg bg-amber-500 px-8 py-3.5 text-base font-semibold text-slate-900 transition-colors hover:bg-amber-400"
+    >
+      Rozpocznij kampanię
+    </a>
+    <ul class="mt-12 grid w-full max-w-2xl gap-4 text-left sm:grid-cols-3">
+      <li class="rounded-lg border border-slate-700 bg-slate-800/60 p-4">
+        <p class="font-semibold text-slate-100">Mapa na cały ekran</p>
+        <p class="mt-1 text-sm text-slate-400">Przesuwaj i przybliżaj mapę Europy jednym gestem.</p>
+      </li>
+      <li class="rounded-lg border border-slate-700 bg-slate-800/60 p-4">
+        <p class="font-semibold text-slate-100">Kampania się zapisuje</p>
+        <p class="mt-1 text-sm text-slate-400">Wróć następnego dnia i kontynuuj rozgrywkę.</p>
+      </li>
+      <li class="rounded-lg border border-slate-700 bg-slate-800/60 p-4">
+        <p class="font-semibold text-slate-100">Proste zasady</p>
+        <p class="mt-1 text-sm text-slate-400">Każda reguła da się wyjaśnić jednym zdaniem.</p>
+      </li>
+    </ul>
+  </main>
 </Layout>
