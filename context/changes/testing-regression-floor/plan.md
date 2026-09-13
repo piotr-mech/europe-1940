@@ -313,18 +313,18 @@ No data migration. Persistence compatibility is a constraint, not a change: old 
 
 #### Automated
 
-- [x] 4.1 Gate constants exported; boundary scenarios at exactly 0.40/0.60 green
-- [x] 4.2 Analytic-vs-simulation coupling test green (tolerance 0.05)
-- [x] 4.3 Lint green
+- [x] 4.1 Gate constants exported; boundary scenarios at exactly 0.40/0.60 green — a1ae389
+- [x] 4.2 Analytic-vs-simulation coupling test green (tolerance 0.05) — a1ae389
+- [x] 4.3 Lint green — a1ae389
 
 #### Manual
 
-- [x] 4.4 Spot-check: ATTACK_PROB_FREE → 0.7 flips a named boundary test; reverted
+- [x] 4.4 Spot-check: ATTACK_PROB_FREE → 0.7 flips a named boundary test; reverted — a1ae389
 
 ### Phase 5: AI Soak Simulation + Cookbook Update
 
 #### Automated
 
-- [ ] 5.1 Soak suite green (60 turns × ~5 seeds, all per-turn invariants)
-- [ ] 5.2 Total suite ≤ ~30s; lint + build green
-- [ ] 5.3 test-plan.md §6.2 filled, §6.6 note appended
+- [x] 5.1 Soak suite green (60 turns × ~5 seeds, all per-turn invariants)
+- [x] 5.2 Total suite ≤ ~30s; lint + build green
+- [x] 5.3 test-plan.md §6.2 filled, §6.6 note appended
