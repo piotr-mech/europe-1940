@@ -127,14 +127,14 @@ MCP/tools actually exposed in the current session.
 | unit + integration | Vitest | 4.1.11 | configured (`npm test`); 10 test files, clustered in engine/data only |
 | component / DOM testing | none yet | — | deliberately deferred (interview Q4); see §7 before adding |
 | API mocking | n/a | — | no server-side game API (all logic client-side per PRD) |
-| e2e (browser) | none yet | — | not justified under cost × signal for this rollout; revisit via §8 |
+| e2e (browser) | Playwright (@playwright/test) | 1.63.0 | added m3l4: `npm run test:e2e`, config with `webServer` on `npm run dev`; two specs — seed (risk #4 reload persistence) + input-blocked AI replay (risk #6 rendered UI); no storageState (no auth, PRD) |
 | static determinism rule | lint/grep gate | — | none yet — see §3 Phase 3 |
 | (optional) AI-native | multimodal image review via host vision tooling | n/a | selective, 1–3 critical screens only — see §3 Phase 5; when NOT to use: any surface a deterministic test already covers |
 
 **Stack grounding tools (current session):**
 - Docs: none — no Context7/framework-docs MCP exposed in this session; local `package.json` + configs used instead; checked: 2026-09-09
 - Search: built-in web search of the host — available but not needed for this stack (all recommendations grounded locally); checked: 2026-09-09
-- Runtime/browser: none — no Playwright/browser MCP in this session; Phase 5 will re-check; checked: 2026-09-09
+- Runtime/browser: Playwright CLI + @playwright/test 1.63.0 installed locally (m3l4); no browser MCP — CLI preferred for token cost; checked: 2026-09-13
 - Provider/platform: linear-server MCP — read/issue tooling only, no quality-gate role in this rollout; not used; checked: 2026-09-09
 
 ## 5. Quality Gates
@@ -149,6 +149,7 @@ phase lands; before that, the gate is `planned`.
 | unit + integration (`npm test`) | CI on `main` (test step wired since F-01; Phase 5 verifies completeness) | required | logic regressions (#1–#6) |
 | determinism static rule | local + CI | required — enforced since §3 Phase 3 (checked: 2026-09-13) | wall-clock / unseeded randomness entering the reducer path |
 | simulation harness (balance band) | CI on `main` | required after §3 Phase 2 | balance drift (#1) |
+| e2e (`npm run test:e2e`) | CI on `main` (wired since m3l4) | required | cross-boundary browser risks (#4 reload persistence, #6 rendered input blocking) |
 | multimodal visual review (selective) | on demand / CI on PR | optional after §3 Phase 5 | readability/visual issues deterministic tests cannot see |
 
 ## 6. Cookbook Patterns
@@ -205,7 +206,16 @@ the relevant rollout phase ships; before that, the sub-section reads
 
 - TBD — see §3 Phase 5.
 
-### 6.6 Per-rollout-phase notes
+### 6.6 Adding an E2E (browser) test
+
+- **Location**: `e2e/`, one test per file, file name = fs-friendly scenario name.
+- **Seed**: `e2e/seed.spec.ts` is the exemplar every generated E2E test is modeled on — role-based selectors (`getByRole`/`getByText`), per-test independence (own setup/action/assertion/cleanup), wait-for-state (never `waitForTimeout`), test name tied to a §2 risk. Generate via `/10x-e2e` (`.agents/skills/10x-e2e/`), not from scratch.
+- **Eligibility**: only risks that cross system boundaries or exist solely in the rendered UI (see the `/10x-e2e` gate table). Everything else stays at the cheaper layer.
+- **Boundaries**: all real — the game has no external APIs to mock. Persistence is `localStorage` (`europe1940:save`); cleanup is `localStorage.removeItem` in-test (Playwright's fresh context per test is the unique-id equivalent — no user-named entities exist).
+- **Break-verify before committing**: deliberately weaken the protected production behavior, confirm the spec goes red, revert, confirm green. Never commit the break.
+- **Run locally**: `npm run test:e2e` (starts `npm run dev` itself via `webServer`).
+
+### 6.7 Per-rollout-phase notes
 
 (Optional. After each phase lands, /10x-implement appends a 2–3 line note
 here capturing anything surprising the rollout phase taught.)
@@ -232,8 +242,8 @@ contributors should respect these unless the underlying assumption changes.
 
 ## 8. Freshness Ledger
 
-- Strategy (§1–§5) last reviewed: 2026-09-13 (§5 gate live: determinism static rule; §6.3 scripted-cycle pattern added)
-- Stack versions last verified: 2026-09-09
+- Strategy (§1–§5) last reviewed: 2026-09-13 (§5 gate live: determinism static rule; §6.3 scripted-cycle pattern added; m3l4: e2e layer added to §4 stack and §5 gates)
+- Stack versions last verified: 2026-09-13 (Playwright 1.63.0 added, m3l4); prior entries 2026-09-09
 - AI-native tool references last verified: 2026-09-09
 
 Refresh (`/10x-test-plan --refresh`) when:
