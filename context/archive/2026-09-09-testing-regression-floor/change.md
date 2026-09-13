@@ -1,10 +1,10 @@
 ---
 change_id: testing-regression-floor
 title: Regression floor for battle & AI hot-spots (test-plan Phase 1)
-status: impl_reviewed
+status: archived
 created: 2026-09-09
 updated: 2026-09-13
-archived_at: null
+archived_at: 2026-09-13T09:34:57Z
 ---
 
 ## Notes
