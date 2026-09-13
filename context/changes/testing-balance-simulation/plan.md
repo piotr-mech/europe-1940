@@ -187,24 +187,24 @@ No data migration; no product state changes. The baseline report is a new commit
 
 #### Automated
 
-- [x] 1.1 Runner self-tests green: determinism (both role assignments), termination, mid-replay victory exit, metric sanity (`npm test`)
-- [x] 1.2 Lint green (`npm run lint`)
+- [x] 1.1 Runner self-tests green: determinism (both role assignments), termination, mid-replay victory exit, metric sanity (`npm test`) — 7af24d2
+- [x] 1.2 Lint green (`npm run lint`) — 7af24d2
 
 #### Manual
 
-- [x] 1.3 Spot-check one campaign record against a live `npm run dev` session
+- [x] 1.3 Spot-check one campaign record against a live `npm run dev` session — 7af24d2
 
 ### Phase 2: Mirrored Baseline Grid + Descriptive Report
 
 #### Automated
 
-- [ ] 2.1 Grid test green: 100 campaigns classified, aggregate deterministic, within time budget; total suite ≤ ~30s (`npm test`)
-- [ ] 2.2 Baseline report committed and byte-identical on regeneration
-- [ ] 2.3 Lint green (`npm run lint`)
+- [x] 2.1 Grid test green: 100 campaigns classified, aggregate deterministic, within time budget; total suite ≤ ~30s (`npm test`)
+- [x] 2.2 Baseline report committed and byte-identical on regeneration
+- [x] 2.3 Lint green (`npm run lint`)
 
 #### Manual
 
-- [ ] 2.4 Review baseline report; record distribution observations for the future pin-bands decision
+- [x] 2.4 Review baseline report; record distribution observations for the future pin-bands decision
 
 ### Phase 3: Cookbook Close-Out
 

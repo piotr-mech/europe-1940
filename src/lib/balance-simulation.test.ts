@@ -1,6 +1,14 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import { performance } from "node:perf_hooks";
 import { describe, expect, it } from "vitest";
 
-import { runCampaign } from "@/lib/balance-simulation";
+import {
+  BASELINE_GRID,
+  BASELINE_REPORT_PATH,
+  renderBaselineReport,
+  runCampaign,
+  runGrid,
+} from "@/lib/balance-simulation";
 import type { CampaignRecord, CampaignInput } from "@/lib/balance-simulation";
 import type { CountryId } from "@/types";
 
@@ -71,5 +79,46 @@ describe("runCampaign (harness self-tests, test-plan Phase 2)", () => {
         expect(record.incomeByTurn.germany).toHaveLength(record.endTurn);
       }
     }
+  });
+});
+
+describe("baseline grid (mirrored 100-campaign measurement)", () => {
+  // 100 campaigns is the pinned grid; ~2–4x the idle soak's per-campaign cost.
+  // The ceiling is deliberately generous (the local run lands well under it)
+  // so CI slowdowns do not flake the budget assertion.
+  const TIME_BUDGET_MS = 15_000;
+
+  it("classifies all 100 campaigns, stays deterministic, and fits the time budget", () => {
+    const started = performance.now();
+    const records = runGrid();
+    const elapsed = performance.now() - started;
+
+    expect(records).toHaveLength(BASELINE_GRID.seeds.length * BASELINE_GRID.roles.length);
+    for (const record of records) {
+      expect(
+        record.winner !== null || record.endTurn === BASELINE_GRID.maxTurns,
+        `seed grid ${record.playerCountryId}-first campaign: winner or cap`,
+      ).toBe(true);
+    }
+
+    // Aggregate determinism on a sampled re-run (20 campaigns) — per-campaign
+    // determinism is already pinned by the self-tests; this guards the grid
+    // order and the aggregation inputs.
+    const sample = runGrid({ ...BASELINE_GRID, seeds: BASELINE_GRID.seeds.slice(0, 10) });
+    for (let index = 0; index < sample.length; index += 1) {
+      expect(sample[index]).toEqual(records[index]);
+    }
+
+    expect(elapsed, `grid wall time ${Math.round(elapsed)}ms fits the budget`).toBeLessThan(TIME_BUDGET_MS);
+  });
+
+  it("renders the committed baseline report byte-identically (or writes it on BALANCE_WRITE=1)", () => {
+    const rendered = renderBaselineReport(runGrid());
+    if (process.env.BALANCE_WRITE === "1") {
+      writeFileSync(BASELINE_REPORT_PATH, rendered, "utf8");
+      return; // generation run: the next ordinary run asserts the byte equality
+    }
+    const committed = readFileSync(BASELINE_REPORT_PATH, "utf8");
+    expect(rendered).toBe(committed);
   });
 });
