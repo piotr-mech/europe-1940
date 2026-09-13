@@ -32,6 +32,12 @@ test("exiting to the main menu keeps the campaign resumable", async ({ page }) =
   await expect(page.getByText(/^Tura 1 · Grasz: Niemcy · AI: ZSRR$/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Koniec tury" })).toBeEnabled();
 
+  // The setup screen's exit leads to the landing page — also non-destructive.
+  await page.getByRole("button", { name: "Menu główne" }).click();
+  await page.getByRole("link", { name: "Strona główna" }).click();
+  await page.waitForURL("**/");
+  await expect(page.getByRole("link", { name: "Rozpocznij kampanię" })).toBeVisible();
+
   // Cleanup: drop the autosaved campaign.
   await page.evaluate((key) => {
     localStorage.removeItem(key);

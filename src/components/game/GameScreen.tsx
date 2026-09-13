@@ -176,6 +176,15 @@ export function GameScreen() {
         >
           Rozpocznij grę
         </button>
+
+        {/* Exit to the landing page: the autosave (if any) is untouched —
+            returning to /game later resumes the saved campaign (FR-014). */}
+        <a
+          href="/"
+          className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-center font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+        >
+          Strona główna
+        </a>
       </main>
     );
   }
