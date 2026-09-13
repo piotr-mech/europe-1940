@@ -389,20 +389,20 @@ reference-identical by design; verified by full suite + manual pass).
 
 #### Automated
 
-- [x] 2.1 `aiStep`-move free-capture victory pinned (winner set, plan cleared, no rollover/reset, log kept)
-- [x] 2.2 Intermediate-path capture victory pinned (battle intermediate field + multi-field move pass-through)
-- [x] 2.3 Skipped-path victory check pinned (both directions)
+- [x] 2.1 `aiStep`-move free-capture victory pinned (winner set, plan cleared, no rollover/reset, log kept) — 9fbc22a
+- [x] 2.2 Intermediate-path capture victory pinned (battle intermediate field + multi-field move pass-through) — 9fbc22a
+- [x] 2.3 Skipped-path victory check pinned (both directions) — 9fbc22a
 
 ### Phase 3: Scripted Full Cycle + Structural Soak
 
 #### Automated
 
-- [ ] 3.1 Scripted full cycle on near-victory fixture (terminal + freeze + reset + in-cycle economy observables)
-- [ ] 3.2 Multi-seed structural soak (5 seeds × ~8 turns, invariants at every boundary, no-winner legal, no stuck campaigns)
+- [x] 3.1 Scripted full cycle on near-victory fixture (terminal + freeze + reset + in-cycle economy observables)
+- [x] 3.2 Multi-seed structural soak (5 seeds × ~8 turns, invariants at every boundary, no-winner legal, no stuck campaigns)
 
 #### Manual
 
-- [ ] 3.3 `npm run dev`: one hand-played turn matches the scripted observables
+- [x] 3.3 `npm run dev`: one hand-played turn matches the scripted observables
 
 ### Phase 4: Cookbook & Plan Sync
 

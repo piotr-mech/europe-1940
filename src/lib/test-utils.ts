@@ -5,6 +5,31 @@ import { createInitialGameState, gameReducer } from "@/lib/game-state";
 import { armySpeed } from "@/lib/movement";
 import type { Army, CountryId, GameState, MapField, UnitInstance, UnitTypeId } from "@/types";
 
+const COUNTRY_IDS: readonly CountryId[] = ["germany", "soviet"];
+
+/**
+ * The structural invariants that must hold after every turn (and every phase
+ * boundary) of a campaign — shared by the AI soak and the campaign-cycle tests.
+ */
+export function assertStructuralInvariants(state: GameState, label: string): void {
+  for (const army of state.armies) {
+    expect(army.units.length, `${label}: army "${army.id}" keeps >= 1 unit`).toBeGreaterThanOrEqual(1);
+    expect(army.movementPoints, `${label}: army "${army.id}" movement never negative`).toBeGreaterThanOrEqual(0);
+    expect(army.movementPoints, `${label}: army "${army.id}" movement never above full speed`).toBeLessThanOrEqual(
+      armySpeed(army),
+    );
+  }
+  for (const owner of Object.values(state.fieldOwners)) {
+    expect<CountryId>(COUNTRY_IDS, `${label}: every field has a valid owner`).toContain(owner);
+  }
+  for (const countryId of COUNTRY_IDS) {
+    const treasury = state.resources[countryId];
+    expect(treasury.money, `${label}: ${countryId} money never negative`).toBeGreaterThanOrEqual(0);
+    expect(treasury.steel, `${label}: ${countryId} steel never negative`).toBeGreaterThanOrEqual(0);
+    expect(treasury.recruits, `${label}: ${countryId} recruits never negative`).toBeGreaterThanOrEqual(0);
+  }
+}
+
 const FIELD_BY_ID = new Map(MAP_FIELDS.map((field) => [field.id, field]));
 
 /** In-memory Storage stand-in — the vitest environment is node (no localStorage). */
