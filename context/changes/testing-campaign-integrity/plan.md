@@ -408,8 +408,8 @@ reference-identical by design; verified by full suite + manual pass).
 
 #### Automated
 
-- [x] 4.1 `npm test` + `npm run lint` + `npm run build` all green (final run)
+- [x] 4.1 `npm test` + `npm run lint` + `npm run build` all green (final run) — 2416f8e
 
 #### Manual
 
-- [x] 4.2 `test-plan.md` §6.6 Phase 4 note appended (§6.3 reference + §8 ledger if §6.3 changed)
+- [x] 4.2 `test-plan.md` §6.6 Phase 4 note appended (§6.3 reference + §8 ledger if §6.3 changed) — 2416f8e

@@ -1,7 +1,7 @@
 ---
 change_id: testing-campaign-integrity
 title: Campaign end-to-end integrity
-status: implementing
+status: implemented
 created: 2026-09-13
 updated: 2026-09-13
 archived_at: null
