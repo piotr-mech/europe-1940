@@ -30,8 +30,11 @@ test("failed autosave raises a warning banner while the game stays playable", as
   // Wait for state: the board is proven by its turn header.
   await expect(page.getByText(/^Tura 1 · Grasz: Niemcy · AI: ZSRR$/)).toBeVisible();
 
-  // The risk under test: the failure is announced, not swallowed.
-  const banner = page.getByRole("alert");
+  // The risk under test: the failure is announced, not swallowed. Filtered by
+  // text because the scaffold's layout also renders a role="alert" banner
+  // ("Uwaga: Supabase nie jest…") whenever the dev server runs without
+  // secrets — exactly the CI case.
+  const banner = page.getByRole("alert").filter({ hasText: "Automatyczny zapis nie działa" });
   await expect(banner).toBeVisible();
   await expect(banner).toContainText("Automatyczny zapis nie działa");
 
