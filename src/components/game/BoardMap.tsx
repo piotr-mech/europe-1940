@@ -9,7 +9,17 @@ import type { GameState, MapField } from "@/types";
 
 const CANVAS_W = 1800;
 const CANVAS_H = 1200;
-const MIN_VIEW_W = 300; // max zoom-in: a 300-wide window over the 1800 canvas
+/**
+ * The drawn map's bounds inside the background asset (measured ink bbox plus a
+ * small pad — the asset carries wide empty sea margins on every side). The
+ * full-viewport view is framed on this rect, so the visible map, not the empty
+ * canvas, fills the screen.
+ */
+const CONTENT_X = 269;
+const CONTENT_Y = 33;
+const CONTENT_W = 1262;
+const CONTENT_H = 1134;
+const MIN_VIEW_W = 300; // max zoom-in: a 300-wide window over the map
 const ZOOM_STEP = 0.85;
 // Screen-space: a down/up pair closer than this is a click, not a pan.
 const CLICK_THRESHOLD_PX = 5;
@@ -41,28 +51,54 @@ interface View {
   x: number;
   y: number;
   w: number;
+  h: number;
 }
 
-const FULL_VIEW: View = { x: 0, y: 0, w: CANVAS_W };
+/**
+ * The viewBox aspect follows the container's (full-viewport map): h = w / aspect,
+ * so the uniform scale assumption of all pointer math holds — no distortion,
+ * no letterboxing. Aspect = container width / height; 3:2 before measurement.
+ */
+const DEFAULT_ASPECT = CANVAS_W / CANVAS_H;
 
-function clampView(view: View): View {
-  const w = Math.min(Math.max(view.w, MIN_VIEW_W), CANVAS_W);
-  const h = (w * CANVAS_H) / CANVAS_W;
+/** Widest allowed window: at max zoom-out the view covers the drawn map in the container's aspect. */
+function maxViewW(aspect: number): number {
+  return Math.min(CONTENT_W, CONTENT_H * aspect);
+}
+
+function clampView(view: Pick<View, "x" | "y" | "w">, aspect: number): View {
+  const w = Math.min(Math.max(view.w, MIN_VIEW_W), maxViewW(aspect));
+  const h = w / aspect;
   return {
     w,
-    x: Math.min(Math.max(view.x, 0), CANVAS_W - w),
-    y: Math.min(Math.max(view.y, 0), CANVAS_H - h),
+    h,
+    x: Math.min(Math.max(view.x, CONTENT_X), CONTENT_X + CONTENT_W - w),
+    y: Math.min(Math.max(view.y, CONTENT_Y), CONTENT_Y + CONTENT_H - h),
   };
 }
 
+/** The reset (double-click) view: max zoom-out, centered on the drawn map. */
+function fullView(aspect: number): View {
+  const w = maxViewW(aspect);
+  const h = w / aspect;
+  return { x: CONTENT_X + (CONTENT_W - w) / 2, y: CONTENT_Y + (CONTENT_H - h) / 2, w, h };
+}
+
 /** Zoom keeping the SVG point under the cursor stationary. */
-function zoomAtCursor(view: View, clientX: number, clientY: number, rect: DOMRect, zoomIn: boolean): View {
+function zoomAtCursor(
+  view: View,
+  clientX: number,
+  clientY: number,
+  rect: DOMRect,
+  zoomIn: boolean,
+  aspect: number,
+): View {
   const scale = view.w / rect.width;
   const svgX = view.x + (clientX - rect.left) * scale;
   const svgY = view.y + (clientY - rect.top) * scale;
   const nextW = view.w * (zoomIn ? ZOOM_STEP : 1 / ZOOM_STEP);
   const ratio = nextW / view.w;
-  return clampView({ x: svgX - (svgX - view.x) * ratio, y: svgY - (svgY - view.y) * ratio, w: nextW });
+  return clampView({ x: svgX - (svgX - view.x) * ratio, y: svgY - (svgY - view.y) * ratio, w: nextW }, aspect);
 }
 
 /**
@@ -83,9 +119,32 @@ export function BoardMap({
   onFieldClick,
 }: BoardMapProps) {
   const data = getGameData();
-  const [view, setView] = useState<View>(FULL_VIEW);
+  const [aspect, setAspect] = useState(DEFAULT_ASPECT);
+  const [view, setView] = useState<View>(() => fullView(DEFAULT_ASPECT));
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<{ clientX: number; clientY: number; view: View } | null>(null);
+
+  // The viewBox aspect tracks the element's box (ResizeObserver): the map fills
+  // the viewport at every size, and the current view re-clamps to stay in-canvas.
+  // The observer fires once on observe(), so the initial aspect is measured too.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (svg === null) return;
+    const aspectRef = { current: DEFAULT_ASPECT };
+    const observer = new ResizeObserver((entries) => {
+      const rect = entries[entries.length - 1].contentRect;
+      if (rect.width === 0 || rect.height === 0) return;
+      const next = rect.width / rect.height;
+      if (Math.abs(aspectRef.current - next) < 0.001) return;
+      aspectRef.current = next;
+      setAspect(next);
+      setView((view) => clampView(view, next));
+    });
+    observer.observe(svg);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   // Native non-passive wheel listener so preventDefault actually stops page scroll.
   useEffect(() => {
@@ -94,14 +153,14 @@ export function BoardMap({
     const onWheel = (event: WheelEvent): void => {
       event.preventDefault();
       setView((current) =>
-        zoomAtCursor(current, event.clientX, event.clientY, svg.getBoundingClientRect(), event.deltaY < 0),
+        zoomAtCursor(current, event.clientX, event.clientY, svg.getBoundingClientRect(), event.deltaY < 0, aspect),
       );
     };
     svg.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       svg.removeEventListener("wheel", onWheel);
     };
-  }, []);
+  }, [aspect]);
 
   const onPointerDown = (event: React.PointerEvent<SVGSVGElement>): void => {
     dragRef.current = { clientX: event.clientX, clientY: event.clientY, view };
@@ -114,11 +173,14 @@ export function BoardMap({
     const rect = event.currentTarget.getBoundingClientRect();
     const scale = drag.view.w / rect.width;
     setView(
-      clampView({
-        x: drag.view.x - (event.clientX - drag.clientX) * scale,
-        y: drag.view.y - (event.clientY - drag.clientY) * scale,
-        w: drag.view.w,
-      }),
+      clampView(
+        {
+          x: drag.view.x - (event.clientX - drag.clientX) * scale,
+          y: drag.view.y - (event.clientY - drag.clientY) * scale,
+          w: drag.view.w,
+        },
+        rect.width / rect.height,
+      ),
     );
   };
 
@@ -193,13 +255,12 @@ export function BoardMap({
   }
 
   const ownerColor = (fieldId: string): string => colorByCountry.get(state.fieldOwners[fieldId] ?? "") ?? "#94a3b8";
-  const viewH = (view.w * CANVAS_H) / CANVAS_W;
 
   return (
     <svg
       ref={svgRef}
-      viewBox={`${view.x} ${view.y} ${view.w} ${viewH}`}
-      className="block h-auto w-full cursor-grab touch-none select-none active:cursor-grabbing"
+      viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
+      className="block h-full w-full cursor-grab touch-none select-none active:cursor-grabbing"
       role="img"
       aria-label="Mapa Europy 1940"
       onPointerDown={onPointerDown}
@@ -207,7 +268,7 @@ export function BoardMap({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
       onDoubleClick={() => {
-        setView(FULL_VIEW);
+        setView(fullView(aspect));
       }}
     >
       <image href={backgroundUrl} x={0} y={0} width={CANVAS_W} height={CANVAS_H} />

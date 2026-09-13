@@ -240,9 +240,19 @@ export function GameScreen() {
     setSelectedSubject({ kind: field.type === "city" ? "city" : "field", fieldId });
   };
 
+  // The map is the app: a full-viewport board (FR-008 immersive map) with the
+  // HUD, the detail panel and the autosave warning floating over it.
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6">
-      <header className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1">
+    <main className="relative h-dvh w-full overflow-hidden">
+      <BoardMap
+        state={state}
+        selectedArmyId={selectedArmyId}
+        reachable={reachable}
+        attackTargets={attackTargets}
+        onArmyClick={onArmyClick}
+        onFieldClick={onFieldClick}
+      />
+      <header className="absolute inset-x-0 top-0 z-20 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-200/70 bg-slate-50/85 px-4 py-2.5 backdrop-blur-sm">
         <h1 className="text-2xl font-bold">EUROPE 1940</h1>
         <p className="text-sm text-slate-600">
           Tura {state.turn} · Grasz: {playerCountry?.name ?? state.playerCountryId} · AI:{" "}
@@ -292,7 +302,7 @@ export function GameScreen() {
         // not cost the player their campaign in silence — warn, stay playable.
         <div
           role="alert"
-          className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          className="absolute top-16 left-1/2 z-20 flex w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-lg"
         >
           <span>
             <strong className="font-semibold">Automatyczny zapis nie działa.</strong> Po odświeżeniu strony kampania
@@ -309,17 +319,7 @@ export function GameScreen() {
           </button>
         </div>
       )}
-      <div className="flex items-start gap-4">
-        <div className="min-w-0 flex-1">
-          <BoardMap
-            state={state}
-            selectedArmyId={selectedArmyId}
-            reachable={reachable}
-            attackTargets={attackTargets}
-            onArmyClick={onArmyClick}
-            onFieldClick={onFieldClick}
-          />
-        </div>
+      <div className="absolute top-[4.75rem] right-3 z-10 max-h-[calc(100dvh-6.5rem)] w-72 overflow-y-auto">
         <DetailPanel
           state={state}
           selected={selectedSubject}
