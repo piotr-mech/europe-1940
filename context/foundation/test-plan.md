@@ -179,10 +179,13 @@ the relevant rollout phase ships; before that, the sub-section reads
 
 ### 6.3 Adding a simulation/integration test (balance, full cycle)
 
-- **Location**: TBD — see §3 Phase 2.
-- **Mocking policy**: TBD — see §3 Phase 2.
-- **Reference test**: TBD — see §3 Phase 2.
-- **Run locally**: TBD — see §3 Phase 2.
+- **Location**: harness in `src/lib/balance-simulation.ts` (colocated module), tests in `src/lib/balance-simulation.test.ts`.
+- **Naming**: `<domain>-simulation.test.ts` for campaign-level suites; keep instrument self-tests (determinism, termination, metric sanity) in the same file, ahead of any measurement tests.
+- **Reference test**: the `baseline grid (mirrored 100-campaign measurement)` describe in `src/lib/balance-simulation.test.ts`.
+- **Mocking policy**: none — drive the real reducer (`endTurn` → capped `drainAiTurn` from `@/lib/test-utils` → role swap between turns). One integer seed per campaign (never wall clock); mirrored = the same seed under both role assignments.
+- **Report artifacts**: render deterministic markdown (no timestamps), commit it under the change folder, and assert byte-identity in the ordinary test run; regenerate with `BALANCE_WRITE=1 npx vitest run src/lib/balance-simulation.test.ts`.
+- **When NOT to use**: any behavior a unit test already covers cheaper — single battle mechanics, reducer case semantics, planner priorities (§6.2's characterization layer). Simulation is for emergent, campaign-level properties only.
+- **Run locally**: `npm test` (the grid rides the suite; ~100 campaigns ≈ seconds).
 
 ### 6.4 Adding a persistence / determinism invariant test
 
@@ -198,6 +201,7 @@ the relevant rollout phase ships; before that, the sub-section reads
 here capturing anything surprising the rollout phase taught.)
 
 - **Phase 1 (testing-regression-floor)**: writing the floor found and fixed a real bug — an illegal planned action as the *last* AI plan entry never rolled the turn over (stuck campaign). Also two unconstructibles to remember: exact 0.4/0.6 gate probabilities are irrational in k = D/A (bracket them instead), and consecutive chained mulberry32 draws correlate (≈0.07 analytic-vs-empirical deviation near even strengths) — the coupling test excludes that band until draws are decorrelated.
+- **Phase 2 (testing-balance-simulation)**: the first measured baseline says the game is NOT balanced — the USSR wins 100% of decided campaigns (38/38 across 100 mirrored campaigns) and 62% of campaigns stall at the turn cap; Germany's economic head start inverts into a 0.27 income ratio. Bands were deliberately left unpinned (descriptive-first; thresholds from this report would be an implementation-mirror oracle). Research also surfaced dead mechanics — the advertised German "Blitzkrieg" is unimplemented and `bonusVsTank` is never read — queued for the future balance-tuning change.
 
 ## 7. What We Deliberately Don't Test
 

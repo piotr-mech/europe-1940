@@ -198,21 +198,21 @@ No data migration; no product state changes. The baseline report is a new commit
 
 #### Automated
 
-- [x] 2.1 Grid test green: 100 campaigns classified, aggregate deterministic, within time budget; total suite ≤ ~30s (`npm test`)
-- [x] 2.2 Baseline report committed and byte-identical on regeneration
-- [x] 2.3 Lint green (`npm run lint`)
+- [x] 2.1 Grid test green: 100 campaigns classified, aggregate deterministic, within time budget; total suite ≤ ~30s (`npm test`) — 92969b5
+- [x] 2.2 Baseline report committed and byte-identical on regeneration — 92969b5
+- [x] 2.3 Lint green (`npm run lint`) — 92969b5
 
 #### Manual
 
-- [x] 2.4 Review baseline report; record distribution observations for the future pin-bands decision
+- [x] 2.4 Review baseline report; record distribution observations for the future pin-bands decision — 92969b5
 
 ### Phase 3: Cookbook Close-Out
 
 #### Automated
 
-- [ ] 3.1 test-plan.md §6.3 filled (no "TBD"); §6.6 note appended
-- [ ] 3.2 Full suite + lint green (`npm test`, `npm run lint`)
+- [x] 3.1 test-plan.md §6.3 filled (no "TBD"); §6.6 note appended
+- [x] 3.2 Full suite + lint green (`npm test`, `npm run lint`)
 
 #### Manual
 
-- [ ] 3.3 Review cookbook entry accuracy against shipped artifacts
+- [x] 3.3 Review cookbook entry accuracy against shipped artifacts
