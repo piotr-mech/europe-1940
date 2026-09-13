@@ -378,20 +378,20 @@ reference-identical by design; verified by full suite + manual pass).
 
 #### Automated
 
-- [x] 1.1 `inputBlocked` contract tests red → implementation green (7 action types × fresh/mid-replay/finished + null)
-- [x] 1.2 GameScreen input guards delegate to `inputBlocked` (full suite + lint green)
+- [x] 1.1 `inputBlocked` contract tests red → implementation green (7 action types × fresh/mid-replay/finished + null) — 7e740b3
+- [x] 1.2 GameScreen input guards delegate to `inputBlocked` (full suite + lint green) — 7e740b3
 
 #### Manual
 
-- [x] 1.3 `npm run dev`: no input during AI replay; post-victory only "Nowa gra"; mid-replay refresh resumes
+- [x] 1.3 `npm run dev`: no input during AI replay; post-victory only "Nowa gra"; mid-replay refresh resumes — 7e740b3
 
 ### Phase 2: Victory Trigger-Path Gaps
 
 #### Automated
 
-- [ ] 2.1 `aiStep`-move free-capture victory pinned (winner set, plan cleared, no rollover/reset, log kept)
-- [ ] 2.2 Intermediate-path capture victory pinned (battle intermediate field + multi-field move pass-through)
-- [ ] 2.3 Skipped-path victory check pinned (both directions)
+- [x] 2.1 `aiStep`-move free-capture victory pinned (winner set, plan cleared, no rollover/reset, log kept)
+- [x] 2.2 Intermediate-path capture victory pinned (battle intermediate field + multi-field move pass-through)
+- [x] 2.3 Skipped-path victory check pinned (both directions)
 
 ### Phase 3: Scripted Full Cycle + Structural Soak
 

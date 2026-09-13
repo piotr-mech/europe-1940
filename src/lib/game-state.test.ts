@@ -725,6 +725,166 @@ describe("gameReducer", () => {
     expect(next.armies.find((army) => army.id === "R2")?.movementPoints).toBe(1);
   });
 
+  it("aiStep free-capturing the last enemy city via a move sets the winner (S-07 trigger path)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // The USSR holds every German-initial city except an undefended Warsaw;
+    // the planned move from Bug river decides the campaign — one extra planned
+    // action must never execute (the mid-replay trap, move-kind twin).
+    const germanCitiesHeld = ["berlin", "poznan", "gdansk", "koenigsberg", "krakow"];
+    const armies = [
+      {
+        id: "R2",
+        owner: "soviet" as const,
+        fieldId: "bug-river",
+        units: [{ id: "R2-u1", typeId: "tank" as const }],
+        movementPoints: 2,
+      },
+      {
+        id: "R1",
+        owner: "soviet" as const,
+        fieldId: "minsk",
+        units: [{ id: "R1-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+    ];
+    const state: GameState = {
+      ...base,
+      turn: 9,
+      armies,
+      fieldOwners: {
+        ...base.fieldOwners,
+        ...Object.fromEntries(germanCitiesHeld.map((fieldId) => [fieldId, "soviet" as const])),
+      },
+      aiPlan: [
+        { kind: "move", armyId: "R2", targetFieldId: "warsaw" },
+        { kind: "move", armyId: "R1", targetFieldId: "orsha-plains" },
+      ],
+    };
+
+    const next = gameReducer(state, { type: "aiStep" });
+    if (next === null) throw new Error("next state is null");
+
+    expect(next.fieldOwners.warsaw).toBe("soviet"); // the free capture (FR-009)
+    expect(next.winner).toBe("soviet");
+    expect(next.aiPlan).toEqual([]); // the remaining planned action is dropped
+    expect(next.turn).toBe(9); // no rollover: the campaign ended mid-replay
+    const moveEntry = next.aiTurnLog.find((entry) => entry.kind === "move");
+    expect(moveEntry).toMatchObject({ kind: "move", armyId: "R2", toFieldId: "warsaw", capturedCity: true });
+    // No movement reset (no rollover): R1 keeps its spent point.
+    expect(next.armies.find((army) => army.id === "R1")?.movementPoints).toBe(1);
+  });
+
+  it("attackArmy winning through an intermediate enemy city sets the winner (S-07 trigger path)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // The target is a terrain field (vistula-river) with a German defender; the
+    // shortest attack path lublin-plains -> warsaw -> vistula-river passes through
+    // undefended Warsaw — the LAST German-initial city. The deciding capture is
+    // the intermediate field, not the target (battle.ts attacker-win flips the path).
+    const germanCitiesHeld = ["berlin", "poznan", "gdansk", "koenigsberg", "krakow"];
+    const armies = [
+      {
+        id: "R1",
+        owner: "soviet" as const,
+        fieldId: "lublin-plains",
+        units: Array.from({ length: 8 }, (_, index) => ({ id: `R1-u${index + 1}`, typeId: "tank" as const })),
+        movementPoints: 2,
+      },
+      {
+        id: "G1",
+        owner: "germany" as const,
+        fieldId: "vistula-river",
+        units: [{ id: "G1-u1", typeId: "infantry" as const }],
+        movementPoints: 1,
+      },
+    ];
+    const state: GameState = {
+      ...base,
+      armies,
+      fieldOwners: {
+        ...base.fieldOwners,
+        ...Object.fromEntries(germanCitiesHeld.map((fieldId) => [fieldId, "soviet" as const])),
+        "lublin-plains": "soviet",
+      },
+    };
+
+    const next = gameReducer(state, { type: "attackArmy", armyId: "R1", targetFieldId: "vistula-river" });
+
+    expect(next?.fieldOwners["vistula-river"]).toBe("soviet"); // the target flipped
+    expect(next?.fieldOwners.warsaw).toBe("soviet"); // the intermediate city flipped too
+    expect(next?.lastBattleReportByCountry.soviet?.attackerWins).toBe(true);
+    expect(next?.winner).toBe("soviet"); // decided by the intermediate capture
+  });
+
+  it("moveArmy passing through the last enemy city sets the winner (S-07 trigger path)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    // Germany holds every Soviet-initial city except Minsk; the two-field move
+    // orsha-plains -> minsk -> bialowieza-forest passes THROUGH undefended Minsk
+    // (the deciding flip) and ends on a terrain field.
+    const sovietCitiesHeld = ["brest", "vilnius", "smolensk", "moscow", "kiev"];
+    const state: GameState = {
+      ...base,
+      armies: [
+        {
+          id: "G1",
+          owner: "germany" as const,
+          fieldId: "orsha-plains",
+          units: [{ id: "G1-u1", typeId: "tank" as const }],
+          movementPoints: 2,
+        },
+      ],
+      fieldOwners: {
+        ...base.fieldOwners,
+        ...Object.fromEntries(sovietCitiesHeld.map((fieldId) => [fieldId, "germany" as const])),
+        "orsha-plains": "germany",
+      },
+    };
+
+    const next = gameReducer(state, { type: "moveArmy", armyId: "G1", targetFieldId: "bialowieza-forest" });
+
+    expect(next?.fieldOwners.minsk).toBe("germany"); // the pass-through capture (FR-009)
+    expect(next?.armies.find((army) => army.id === "G1")?.fieldId).toBe("bialowieza-forest"); // the march completed
+    expect(next?.winner).toBe("germany"); // decided by the intermediate city
+  });
+
+  it("the skipped aiStep path still runs the victory check — and cannot invent one (S-07)", () => {
+    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+
+    // Direction 1: an already-satisfied condition (synthetic double-satisfaction
+    // guard, S-07 plan :20) is not swallowed by a dropped action — the skip path's
+    // tail check sets the winner and skips the rollover.
+    const sovietCityIds = ["brest", "vilnius", "minsk", "smolensk", "moscow", "kiev"];
+    const satisfied: GameState = {
+      ...base,
+      turn: 11,
+      aiPlan: [{ kind: "move", armyId: "no-such-army", targetFieldId: "minsk" }], // illegal: dropped, traced
+      fieldOwners: {
+        ...base.fieldOwners,
+        ...Object.fromEntries(sovietCityIds.map((fieldId) => [fieldId, "germany" as const])),
+      },
+    };
+
+    const decided = gameReducer(satisfied, { type: "aiStep" });
+    expect(decided?.winner).toBe("germany"); // the skip path's check fires
+    expect(decided?.aiPlan).toEqual([]);
+    expect(decided?.turn).toBe(11); // no rollover on a decided campaign
+    expect(decided?.aiTurnLog.some((entry) => entry.kind === "skipped")).toBe(true); // the drop stays observable
+
+    // Direction 2: with no condition satisfied, the same all-illegal drain ends
+    // winner-less and still rolls the turn over (the stuck-campaign regression).
+    const undecided: GameState = {
+      ...base,
+      turn: 4,
+      aiPlan: [
+        { kind: "move", armyId: "no-such-army", targetFieldId: "minsk" },
+        { kind: "move", armyId: "also-gone", targetFieldId: "kiev" },
+      ],
+    };
+    const drained = drainAiTurn(undecided, "all-illegal drain");
+    expect(drained.winner).toBeNull();
+    expect(drained.turn).toBe(5); // rollover happened despite every action being dropped
+    expect(drained.aiTurnLog.filter((entry) => entry.kind === "skipped")).toHaveLength(2);
+  });
+
   it("every gameplay action on a finished state is a no-op (S-07 freeze)", () => {
     const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
     const finished: GameState = {
