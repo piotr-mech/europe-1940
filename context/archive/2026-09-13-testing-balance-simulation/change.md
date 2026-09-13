@@ -1,10 +1,10 @@
 ---
 change_id: testing-balance-simulation
 title: Balance simulation harness (test-plan Phase 2)
-status: impl_reviewed
+status: archived
 created: 2026-09-13
 updated: 2026-09-13
-archived_at: null
+archived_at: 2026-09-13T14:39:55Z
 ---
 
 ## Notes
