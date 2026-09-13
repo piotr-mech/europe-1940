@@ -210,9 +210,9 @@ No data migration; no product state changes. The baseline report is a new commit
 
 #### Automated
 
-- [x] 3.1 test-plan.md §6.3 filled (no "TBD"); §6.6 note appended
-- [x] 3.2 Full suite + lint green (`npm test`, `npm run lint`)
+- [x] 3.1 test-plan.md §6.3 filled (no "TBD"); §6.6 note appended — cfcbd47
+- [x] 3.2 Full suite + lint green (`npm test`, `npm run lint`) — cfcbd47
 
 #### Manual
 
-- [x] 3.3 Review cookbook entry accuracy against shipped artifacts
+- [x] 3.3 Review cookbook entry accuracy against shipped artifacts — cfcbd47
