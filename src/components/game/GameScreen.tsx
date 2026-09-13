@@ -7,7 +7,7 @@ import { VictoryOverlay } from "@/components/game/VictoryOverlay";
 import { getGameData } from "@/lib/game-data";
 import { gameReducer, isDomainError } from "@/lib/game-state";
 import { attackFields, reachableFields } from "@/lib/movement";
-import { clearGame, loadGame, saveGame } from "@/lib/persistence";
+import { clearGame, loadGame, persistDecision, saveGame } from "@/lib/persistence";
 import { cn } from "@/lib/utils";
 import type { BattleReport, Country, CountryId, GameState, ResourceId } from "@/types";
 
@@ -98,12 +98,13 @@ export function GameScreen() {
   }, [state, battlePopup, aiBattlePopup, aiTurnActive, dispatch]);
 
   // Autosave (S-08, FR-014): every state transition persists — including each
-  // staged `aiStep`, so even a refresh mid-AI-replay resumes correctly. A
-  // finished campaign clears the save instead (order matters: never save a
-  // state that already has a winner); `null` (setup screen) saves nothing.
+  // staged `aiStep`, so even a refresh mid-AI-replay resumes correctly. The
+  // save/clear/skip decision is persistDecision's contract (tested there):
+  // a finished campaign clears the save — never persists a winner — and the
+  // setup screen (`null`) saves nothing.
   useEffect(() => {
-    if (state === null) return;
-    if (state.winner !== null) {
+    if (state === null) return; // "skip": the setup screen saves nothing
+    if (persistDecision(state) === "clear") {
       clearGame();
       return;
     }

@@ -97,6 +97,20 @@ export function clearGame(): void {
   discardSave(storage);
 }
 
+/** What the autosave effect should do with a state (S-08). */
+export type PersistDecision = "save" | "clear" | "skip";
+
+/**
+ * The autosave decision, extracted from the UI effect so the finished-game
+ * invariant is a testable contract: the setup screen persists nothing, a
+ * finished campaign clears the save — a state with a winner is never saved.
+ */
+export function persistDecision(state: GameState | null): PersistDecision {
+  if (state === null) return "skip";
+  if (state.winner !== null) return "clear";
+  return "save";
+}
+
 function discardSave(storage: Storage): void {
   try {
     storage.removeItem(SAVE_STORAGE_KEY);

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createInitialGameState, gameReducer } from "@/lib/game-state";
-import { clearGame, loadGame, SAVE_STORAGE_KEY, SAVE_VERSION, saveGame } from "@/lib/persistence";
+import { clearGame, loadGame, persistDecision, SAVE_STORAGE_KEY, SAVE_VERSION, saveGame } from "@/lib/persistence";
 import type { GameState } from "@/types";
 
 /** In-memory Storage stand-in — the vitest environment is node (no localStorage). */
@@ -49,6 +49,35 @@ function playedState(): GameState {
   state = gameReducer(state, { type: "endTurn" });
   return gameReducer(state, { type: "aiStep" });
 }
+
+/** A save as the pre-"skipped"-epoch writer produced it: aiTurnLog entries limited to the move|battle|order kinds that existed before the guard was widened in place. */
+function oldEpochState(): GameState {
+  const base = playedState();
+  return {
+    ...base,
+    aiTurnLog: [{ kind: "move", armyId: "R2", fromFieldId: "minsk", toFieldId: "smolensk", capturedCity: false }],
+  };
+}
+
+describe("persistDecision", () => {
+  it("skips on the setup screen (null state) — nothing is saved or cleared", () => {
+    expect(persistDecision(null)).toBe("skip");
+  });
+
+  it("saves an in-progress campaign", () => {
+    expect(persistDecision(playedState())).toBe("save");
+  });
+
+  it("clears a finished campaign instead of saving it — a winner is never persisted", () => {
+    expect(persistDecision({ ...playedState(), winner: "germany" })).toBe("clear");
+  });
+
+  it("stays at skip after a post-victory reset, so storage stays empty", () => {
+    const afterReset = gameReducer({ ...playedState(), winner: "germany" }, { type: "resetGame" });
+    expect(afterReset).toBeNull();
+    expect(persistDecision(afterReset)).toBe("skip");
+  });
+});
 
 describe("saveGame", () => {
   it("stores a versioned envelope", () => {
@@ -139,6 +168,20 @@ describe("loadGame", () => {
 
     expect(loadGame()).toBeNull();
     expect(storage.getItem(SAVE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("rejects a past save version and removes the entry", () => {
+    plantEntry({ version: SAVE_VERSION - 1, state: createInitialGameState("germany", "soviet") });
+
+    expect(loadGame()).toBeNull();
+    expect(storage.getItem(SAVE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("round-trips a save from the previous schema epoch (guard widened in place, old shape unchanged)", () => {
+    const oldShape = oldEpochState();
+    saveGame(oldShape);
+
+    expect(loadGame()).toEqual(oldShape);
   });
 
   it("rejects corrupt JSON and removes the entry", () => {
