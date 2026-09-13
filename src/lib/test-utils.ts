@@ -20,7 +20,7 @@ export function assertStructuralInvariants(state: GameState, label: string): voi
     );
   }
   for (const owner of Object.values(state.fieldOwners)) {
-    expect<CountryId>(COUNTRY_IDS, `${label}: every field has a valid owner`).toContain(owner);
+    expect(COUNTRY_IDS, `${label}: every field has a valid owner`).toContain(owner);
   }
   for (const countryId of COUNTRY_IDS) {
     const treasury = state.resources[countryId];
@@ -30,7 +30,7 @@ export function assertStructuralInvariants(state: GameState, label: string): voi
   }
 }
 
-const FIELD_BY_ID = new Map(MAP_FIELDS.map((field) => [field.id, field]));
+const FIELD_BY_ID = new Map<string, MapField>(MAP_FIELDS.map((field) => [field.id, field]));
 
 /** In-memory Storage stand-in — the vitest environment is node (no localStorage). */
 export class MemoryStorage {
@@ -62,7 +62,7 @@ export function units(...typeIds: UnitTypeId[]): UnitInstance[] {
 }
 
 export function army(id: string, owner: CountryId, fieldId: string, typeIds: UnitTypeId[]): Army {
-  const base: Army = { id, owner, fieldId, units: units(...typeIds) };
+  const base: Army = { id, owner, fieldId, units: units(...typeIds), movementPoints: 0 };
   return { ...base, movementPoints: armySpeed(base) };
 }
 

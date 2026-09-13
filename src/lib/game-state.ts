@@ -78,7 +78,7 @@ export function createInitialGameState(playerCountryId: CountryId, aiCountryId: 
       id: `${draft.armyId}-u${index + 1}`,
       typeId,
     }));
-    const army: Army = { id: draft.armyId, owner: draft.owner, fieldId: draft.fieldId, units };
+    const army: Army = { id: draft.armyId, owner: draft.owner, fieldId: draft.fieldId, units, movementPoints: 0 };
     return { ...army, movementPoints: armySpeed(army) };
   });
 

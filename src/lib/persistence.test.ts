@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createInitialGameState, gameReducer } from "@/lib/game-state";
 import { clearGame, loadGame, persistDecision, SAVE_STORAGE_KEY, SAVE_VERSION, saveGame } from "@/lib/persistence";
-import { drainAiTurn, MemoryStorage } from "@/lib/test-utils";
+import { drainAiTurn, failWith, MemoryStorage } from "@/lib/test-utils";
 import type { GameState } from "@/types";
 
 let storage: MemoryStorage;
@@ -23,15 +23,18 @@ function plantEntry(envelope: unknown): void {
 
 /** A real campaign a few reducer steps in (order staged, AI turn planned, one AI action applied). */
 function playedState(): GameState {
-  let state = gameReducer(null, {
-    type: "startGame",
-    playerCountryId: "germany",
-    aiCountryId: "soviet",
-    seed: 7,
-  });
-  state = gameReducer(state, { type: "orderUnit", fieldId: "warsaw", unitTypeId: "infantry" });
-  state = gameReducer(state, { type: "endTurn" });
-  return gameReducer(state, { type: "aiStep" });
+  const started =
+    gameReducer(null, {
+      type: "startGame",
+      playerCountryId: "germany",
+      aiCountryId: "soviet",
+      seed: 7,
+    }) ?? failWith("playedState: startGame returned null");
+  const ordered =
+    gameReducer(started, { type: "orderUnit", fieldId: "warsaw", unitTypeId: "infantry" }) ??
+    failWith("playedState: orderUnit returned null");
+  const planned = gameReducer(ordered, { type: "endTurn" }) ?? failWith("playedState: endTurn returned null");
+  return gameReducer(planned, { type: "aiStep" }) ?? failWith("playedState: aiStep returned null");
 }
 
 /** A save as the pre-"skipped"-epoch writer produced it: aiTurnLog entries limited to the move|battle|order kinds that existed before the guard was widened in place. */
@@ -56,10 +59,16 @@ function lateGameState(): GameState {
   });
   for (let turn = 1; turn <= 3; turn += 1) {
     const ordered = gameReducer(state, { type: "orderUnit", fieldId: "warsaw", unitTypeId: "infantry" });
-    state = drainAiTurn(gameReducer(ordered, { type: "endTurn" }), `late-game turn ${turn}`);
+    state = drainAiTurn(
+      gameReducer(ordered, { type: "endTurn" }) ?? failWith(`late-game turn ${turn}: endTurn returned null`),
+      `late-game turn ${turn}`,
+    );
   }
   if (state === null) throw new Error("late-game recipe broke: state went null");
-  return gameReducer(state, { type: "attackArmy", armyId: "G2", targetFieldId: "lublin-plains" });
+  return (
+    gameReducer(state, { type: "attackArmy", armyId: "G2", targetFieldId: "lublin-plains" }) ??
+    failWith("lateGameState: attackArmy returned null")
+  );
 }
 
 describe("persistDecision", () => {

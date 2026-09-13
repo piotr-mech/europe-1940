@@ -212,7 +212,7 @@ export function planAiTurn(state: GameState): AiPlan {
 
   // --- P3/P4: attacks on enemy cities, gated by the §27 thresholds ---
   const enemyCities = MAP_FIELDS.filter((field) => field.city !== null && enemy(state.fieldOwners[field.id]));
-  const values = new Map(enemyCities.map((city) => [city.id, cityTargetValue(state, ai, city.id)]));
+  const values = new Map<string, number>(enemyCities.map((city) => [city.id, cityTargetValue(state, ai, city.id)]));
   const medianValue = median([...values.values()]);
   const candidates = attackCandidates(state, ai, acted);
   // Snapshot before the P3/P4 picks splice the list: the grouping gate asks
@@ -386,7 +386,8 @@ export function planAiProduction(state: GameState): Extract<AiAction, { kind: "o
   const initialCities = MAP_FIELDS.filter((field) => field.city !== null && field.initialOwner === ai).length;
   const currentCities = MAP_FIELDS.filter((field) => field.city !== null && state.fieldOwners[field.id] === ai).length;
   const income = MAP_FIELDS.filter((field) => field.city !== null && state.fieldOwners[field.id] === ai).reduce(
-    (sum, field) => sum + field.city.income.money + field.city.income.steel + field.city.income.recruits,
+    (sum, field) =>
+      sum + (field.city?.income.money ?? 0) + (field.city?.income.steel ?? 0) + (field.city?.income.recruits ?? 0),
     0,
   );
   const treasury = state.resources[ai];

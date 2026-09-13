@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 
-import { BattlePopup } from "@/components/game/BattlePopup";
+import { BattlePopup, type BattleReportLike } from "@/components/game/BattlePopup";
 import { BoardMap } from "@/components/game/BoardMap";
 import { DetailPanel, RESOURCE_LABELS, type SelectedSubject } from "@/components/game/DetailPanel";
 import { VictoryOverlay } from "@/components/game/VictoryOverlay";
@@ -9,7 +9,7 @@ import { gameReducer, inputBlocked, isDomainError } from "@/lib/game-state";
 import { attackFields, reachableFields } from "@/lib/movement";
 import { clearGame, loadGame, persistDecision, saveGame } from "@/lib/persistence";
 import { cn } from "@/lib/utils";
-import type { BattleReport, Country, CountryId, GameState, ResourceId } from "@/types";
+import type { Country, CountryId, GameState, ResourceId } from "@/types";
 
 /** One AI action per tick (S-06): the deliberate presentation pause (NFR: no long waits). */
 const AI_STEP_INTERVAL_MS = 500;
@@ -60,13 +60,13 @@ export function GameScreen() {
   const [selectedSubject, setSelectedSubject] = useState<SelectedSubject | null>(null);
   // The battle popup (S-04): derived, not stored — the newest report shows
   // until its staged reveal is dismissed (a new battle = a new reference).
-  const [dismissedReport, setDismissedReport] = useState<BattleReport | null>(null);
-  const closeBattlePopup = useCallback((report: BattleReport) => {
+  const [dismissedReport, setDismissedReport] = useState<BattleReportLike | null>(null);
+  const closeBattlePopup = useCallback((report: BattleReportLike) => {
     setDismissedReport(report);
   }, []);
   // The AI's battle popup (S-06), dismissed separately from the player's.
-  const [dismissedAiReport, setDismissedAiReport] = useState<BattleReport | null>(null);
-  const closeAiBattlePopup = useCallback((report: BattleReport) => {
+  const [dismissedAiReport, setDismissedAiReport] = useState<BattleReportLike | null>(null);
+  const closeAiBattlePopup = useCallback((report: BattleReportLike) => {
     setDismissedAiReport(report);
   }, []);
   // The victory overlay (S-07) is derived like the popups; dismissal ("Zobacz

@@ -24,9 +24,9 @@ function cityIncomeOf(state: GameState, countryId: CountryId): ResourceBag {
     (field) => field.city !== null && state.fieldOwners[field.id] === countryId,
   ).reduce<ResourceBag>(
     (sum, field) => ({
-      money: sum.money + field.city.income.money,
-      steel: sum.steel + field.city.income.steel,
-      recruits: sum.recruits + field.city.income.recruits,
+      money: sum.money + (field.city?.income.money ?? 0),
+      steel: sum.steel + (field.city?.income.steel ?? 0),
+      recruits: sum.recruits + (field.city?.income.recruits ?? 0),
     }),
     { money: 0, steel: 0, recruits: 0 },
   );

@@ -17,7 +17,7 @@ interface BattlePopupProps {
 }
 
 /** The subset of BattleReport the popup renders (keeps the props narrow). */
-interface BattleReportLike {
+export interface BattleReportLike {
   attackerOwner: Country["id"];
   attackerArmyId: string;
   fieldId: string;

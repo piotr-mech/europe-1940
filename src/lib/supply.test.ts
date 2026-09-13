@@ -17,7 +17,7 @@ function units(...typeIds: UnitTypeId[]): UnitInstance[] {
 }
 
 function army(id: string, owner: CountryId, fieldId: string, typeIds: UnitTypeId[]): Army {
-  const base: Army = { id, owner, fieldId, units: units(...typeIds) };
+  const base: Army = { id, owner, fieldId, units: units(...typeIds), movementPoints: 0 };
   return { ...base, movementPoints: armySpeed(base) };
 }
 
@@ -71,7 +71,7 @@ describe("isSupplied", () => {
   });
 
   it("evaluates each side independently", () => {
-    const cut = {
+    const cut: Record<string, CountryId> = {
       "volhynia-plains": "germany",
       "carpathians-mountains": "soviet",
       "lublin-plains": "soviet",
@@ -109,7 +109,7 @@ describe("movementAllowance (FR-011 movement cap)", () => {
   });
 
   it("leaves infantry at 1 either way", () => {
-    const cut = {
+    const cut: Record<string, CountryId> = {
       "volhynia-plains": "germany",
       "carpathians-mountains": "soviet",
       "lublin-plains": "soviet",

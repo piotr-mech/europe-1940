@@ -45,6 +45,7 @@ export function isSupplied(state: GameState, army: Army): boolean {
   const queue: string[] = [army.fieldId];
   while (queue.length > 0) {
     const fieldId = queue.shift();
+    if (fieldId === undefined) break;
     const field = getField(fieldId);
     if (field.city !== null) {
       return true;

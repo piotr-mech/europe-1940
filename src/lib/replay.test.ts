@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { gameReducer } from "@/lib/game-state";
 import { loadGame, saveGame } from "@/lib/persistence";
-import { drainAiTurn, MemoryStorage } from "@/lib/test-utils";
+import { drainAiTurn, failWith, MemoryStorage } from "@/lib/test-utils";
 import type { GameState } from "@/types";
 
 /**
@@ -26,14 +26,17 @@ afterEach(() => {
 
 /** A campaign with the AI turn planned (endTurn dispatched), replay not started. */
 function plannedTurn(seed: number): GameState {
-  let state = gameReducer(null, {
-    type: "startGame",
-    playerCountryId: "germany",
-    aiCountryId: "soviet",
-    seed,
-  });
-  state = gameReducer(state, { type: "orderUnit", fieldId: "warsaw", unitTypeId: "infantry" });
-  return gameReducer(state, { type: "endTurn" });
+  const started =
+    gameReducer(null, {
+      type: "startGame",
+      playerCountryId: "germany",
+      aiCountryId: "soviet",
+      seed,
+    }) ?? failWith("plannedTurn: startGame returned null");
+  const ordered =
+    gameReducer(started, { type: "orderUnit", fieldId: "warsaw", unitTypeId: "infantry" }) ??
+    failWith("plannedTurn: orderUnit returned null");
+  return gameReducer(ordered, { type: "endTurn" }) ?? failWith("plannedTurn: endTurn returned null");
 }
 
 /** Applies exactly `steps` staged aiSteps to a planned state. */

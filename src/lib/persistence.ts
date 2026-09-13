@@ -168,7 +168,7 @@ function isAiActionShaped(value: unknown): boolean {
 
 function isValidGameState(value: unknown): value is GameState {
   if (!isRecord(value)) return false;
-  if (!Number.isInteger(value.turn) || value.turn < 1) return false;
+  if (typeof value.turn !== "number" || !Number.isInteger(value.turn) || value.turn < 1) return false;
   if (
     !isCountryId(value.playerCountryId) ||
     !isCountryId(value.aiCountryId) ||

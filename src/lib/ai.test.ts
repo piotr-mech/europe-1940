@@ -198,7 +198,9 @@ describe("planAiTurn — priority ladder (§26)", () => {
     const first = planAiTurn(state);
     const second = planAiTurn(state);
     expect(first).toEqual(second);
-    const armyIds = first.filter((a) => a.kind !== "order").map((a) => (a.kind === "order" ? "" : a.armyId));
+    const armyIds = first
+      .filter((a): a is Exclude<AiAction, { kind: "order" }> => a.kind !== "order")
+      .map((a) => a.armyId);
     expect(new Set(armyIds).size).toBe(armyIds.length); // no army acts twice
   });
 });
@@ -299,7 +301,7 @@ describe("aiWinProbability ↔ resolveBattle coupling (G2, seeds 0–99)", () =>
     // contract through no fault of either formula. Decorrelating the draws
     // would change every battle outcome and is out of scope here; until then
     // the grid samples the plane outside that band.
-    const attackArmy = ["tank", "tank", "tank", "tank", "infantry", "infantry", "infantry", "infantry"];
+    const attackArmy: UnitTypeId[] = ["tank", "tank", "tank", "tank", "infantry", "infantry", "infantry", "infantry"];
     for (const defense of [20, 30, 35, 50, 60, 80]) {
       const infantryCount = defense / 5;
       const defenders = [

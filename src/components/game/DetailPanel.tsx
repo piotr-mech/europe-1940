@@ -146,6 +146,9 @@ export function DetailPanel({ state, selected, dispatch, ordersDisabled = false 
       const owner = countryById.get(state.fieldOwners[field.id] ?? "");
       const isCity = selected.kind === "city";
       const terrain = !isCity ? data.terrain[field.type as TerrainType] : null;
+      // Const alias so the `city !== null` guard keeps narrowing inside the
+      // resource map callback below (property narrowing does not carry there).
+      const city = field.city;
       body = (
         <div className="grid gap-3">
           <header>
@@ -157,16 +160,16 @@ export function DetailPanel({ state, selected, dispatch, ordersDisabled = false 
               </span>
             </div>
           </header>
-          {isCity && field.city !== null ? (
+          {isCity && city !== null ? (
             <>
               <dl className="grid gap-1 text-sm">
-                <StatRow label="Sloty produkcyjne" value={String(field.city.productionSlots)} />
-                <StatRow label="Bonus obrony" value={String(field.city.defenseBonus)} />
+                <StatRow label="Sloty produkcyjne" value={String(city.productionSlots)} />
+                <StatRow label="Bonus obrony" value={String(city.defenseBonus)} />
                 {(Object.keys(RESOURCE_LABELS) as ResourceId[]).map((resourceId) => (
                   <StatRow
                     key={resourceId}
                     label={`Dochód · ${RESOURCE_LABELS[resourceId]}`}
-                    value={String(field.city.income[resourceId])}
+                    value={String(city.income[resourceId])}
                   />
                 ))}
               </dl>

@@ -6,7 +6,7 @@ import { gameReducer } from "@/lib/game-state";
 import { attackFields } from "@/lib/movement";
 import { collectIncome } from "@/lib/production";
 import { army, drainAiTurn, failWith, field, findArmy, hasArmy, stateWithArmies } from "@/lib/test-utils";
-import type { Army, CountryId, GameState, UnitTypeId } from "@/types";
+import type { Army, GameState, UnitTypeId } from "@/types";
 
 const UNIT_BY_ID = new Map(UNIT_TYPES.map((unitType) => [unitType.id, unitType]));
 
@@ -557,7 +557,7 @@ describe("resolveBattle invariant sweep (G5/G6, seeds 0–99)", () => {
     // the fought-over field follows the ownership rule — the attacker's on a
     // win, unchanged after a successful defense.
     for (const owner of Object.values(next.fieldOwners)) {
-      expect<CountryId>(["germany", "soviet"], `${where}: owners are valid countries`).toContain(owner);
+      expect(["germany", "soviet"], `${where}: owners are valid countries`).toContain(owner);
     }
     expect(next.fieldOwners[matchup.targetFieldId], `${where}: target ownership rule`).toBe(
       report.attackerWins ? attackerBefore.owner : base.fieldOwners[matchup.targetFieldId],

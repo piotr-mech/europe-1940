@@ -4,11 +4,23 @@ import { getGameData } from "@/lib/game-data";
 import { createInitialGameState, dominantUnitType, gameReducer, inputBlocked } from "@/lib/game-state";
 import { armySpeed } from "@/lib/movement";
 import { applyProductionOrder } from "@/lib/production";
-import { drainAiTurn } from "@/lib/test-utils";
-import type { Army, CountryId, GameState, ResourceBag } from "@/types";
+import { drainAiTurn, failWith } from "@/lib/test-utils";
+import type { Army, CountryId, GameState, ResourceBag, UnitInstance } from "@/types";
 
 const gameData = getGameData();
 const COUNTRY_IDS: readonly CountryId[] = ["germany", "soviet"];
+
+/**
+ * startGame from null with the standard pairing — startGame always returns a
+ * fresh state, so the null branch is a loud test-recipe failure, not a case
+ * to handle. Keeps the many `{ ...base, ... }` cut recipes well-typed.
+ */
+function started(seed = 1): GameState {
+  return (
+    gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed }) ??
+    failWith("startGame returned null")
+  );
+}
 
 /** Summed city income of the fields a country initially owns. */
 function startingIncome(countryId: CountryId): ResourceBag {
@@ -16,9 +28,9 @@ function startingIncome(countryId: CountryId): ResourceBag {
     .filter((field) => field.initialOwner === countryId && field.city !== null)
     .reduce<ResourceBag>(
       (sum, field) => ({
-        money: sum.money + field.city.income.money,
-        steel: sum.steel + field.city.income.steel,
-        recruits: sum.recruits + field.city.income.recruits,
+        money: sum.money + (field.city?.income.money ?? 0),
+        steel: sum.steel + (field.city?.income.steel ?? 0),
+        recruits: sum.recruits + (field.city?.income.recruits ?? 0),
       }),
       { money: 0, steel: 0, recruits: 0 },
     );
@@ -144,7 +156,7 @@ describe("gameReducer", () => {
   });
 
   it("startGame on an existing state restarts the campaign", () => {
-    const first = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const first = started();
     const second = gameReducer(first, {
       type: "startGame",
       playerCountryId: "soviet",
@@ -155,7 +167,7 @@ describe("gameReducer", () => {
   });
 
   it("moveArmy moves the army and spends its movement points", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state = started();
     // G2 stands in Warsaw (speed 1); Radom Plains is a 1-cost neighbor.
     const next = gameReducer(state, { type: "moveArmy", armyId: "G2", targetFieldId: "radom-plains" });
     const moved = next?.armies.find((army) => army.id === "G2");
@@ -164,7 +176,7 @@ describe("gameReducer", () => {
   });
 
   it("endTurn plans the AI turn; the turn rolls over only when it drains (S-06)", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state = started();
     const moved = gameReducer(state, { type: "moveArmy", armyId: "G2", targetFieldId: "radom-plains" });
     const planned = gameReducer(moved, { type: "endTurn" });
     if (planned === null) throw new Error("planned state is null");
@@ -180,21 +192,21 @@ describe("gameReducer", () => {
   });
 
   it("the staged AI turn is deterministic end to end", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state = started();
     const planned = gameReducer(state, { type: "endTurn" });
     if (planned === null) throw new Error("planned state is null");
     expect(drainAiTurn(planned)).toEqual(drainAiTurn(planned));
   });
 
   it("endTurn during an AI turn is ignored (no restarting mid-turn)", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state = started();
     const planned = gameReducer(state, { type: "endTurn" });
     if (planned === null) throw new Error("planned state is null");
     expect(gameReducer(planned, { type: "endTurn" })).toBe(planned);
   });
 
   it("endTurn caps an unsupplied army's movement at 1 (FR-011, S-05)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // A German tank army holds Volhynia, but every neighbouring field is
     // Soviet: walled off from any German city. Soviet tanks sit on own Kiev.
     const cut = {
@@ -230,7 +242,7 @@ describe("gameReducer", () => {
   });
 
   it("endTurn collects both countries' income on top of the seeded treasury", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state = started();
     const next = gameReducer(state, { type: "endTurn" });
     for (const countryId of COUNTRY_IDS) {
       const seeded = startingIncome(countryId);
@@ -243,7 +255,7 @@ describe("gameReducer", () => {
   });
 
   it("an infantry order (buildTime 1) completes on one endTurn — unit on the map on turn N+1", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state = started();
     const ordered = applyProductionOrder(state, "germany", "berlin", "infantry");
     const planned = gameReducer(ordered, { type: "endTurn" });
     const next = planned === null ? null : drainAiTurn(planned);
@@ -258,7 +270,7 @@ describe("gameReducer", () => {
   });
 
   it("a tank order (buildTime 2) stays queued after one endTurn and completes on the second", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state = started();
     const ordered = applyProductionOrder(state, "germany", "berlin", "tank");
     const planned2 = gameReducer(ordered, { type: "endTurn" });
     const turn2 = planned2 === null ? null : drainAiTurn(planned2);
@@ -273,7 +285,7 @@ describe("gameReducer", () => {
   });
 
   it("AI-country queues tick identically (soviet order under a german player)", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state = started();
     const ordered = applyProductionOrder(state, "soviet", "moscow", "infantry");
     const next = gameReducer(ordered, { type: "endTurn" });
 
@@ -284,7 +296,7 @@ describe("gameReducer", () => {
   });
 
   it("orderUnit places the player's order: upfront deduction + queue append", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state = started();
     const next = gameReducer(state, { type: "orderUnit", fieldId: "berlin", unitTypeId: "infantry" });
 
     const seeded = startingIncome("germany");
@@ -297,7 +309,7 @@ describe("gameReducer", () => {
   });
 
   it("orderUnit is a backstop: an illegal order returns the state unchanged", () => {
-    const state = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const state = started();
 
     // Not the player's city (Moscow belongs to the AI).
     const foreign = gameReducer(state, { type: "orderUnit", fieldId: "moscow", unitTypeId: "infantry" });
@@ -310,7 +322,7 @@ describe("gameReducer", () => {
   });
 
   it("attackArmy resolves the battle: state advances, seed advances, report stored, city captured", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // German tank army on the Bug river attacks one Soviet infantry in Brest.
     const armies = [
       {
@@ -341,7 +353,7 @@ describe("gameReducer", () => {
   });
 
   it("attackArmy is a backstop: illegal attacks return the state unchanged", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     const armies = [
       {
         id: "G1",
@@ -369,11 +381,17 @@ describe("gameReducer", () => {
   });
 
   it("attackArmy propagates developer errors (lesson: bare catch masks them)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // Corrupted army (units: null) — attackerStrength's for..of throws TypeError,
     // which the backstop must NOT swallow.
     const armies = [
-      { id: "G1", owner: "germany" as const, fieldId: "warsaw", units: null, movementPoints: 2 },
+      {
+        id: "G1",
+        owner: "germany" as const,
+        fieldId: "warsaw",
+        units: null as unknown as UnitInstance[],
+        movementPoints: 2,
+      },
       {
         id: "R1",
         owner: "soviet" as const,
@@ -387,7 +405,7 @@ describe("gameReducer", () => {
   });
 
   it("the AI turn executes step by step; an AI battle writes the AI's slot only (S-06)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // Soviet tanks on the Bug, one German defender in Warsaw: the planner's
     // priority 3 attacks Warsaw (P = 1).
     const armies = [
@@ -422,7 +440,7 @@ describe("gameReducer", () => {
   });
 
   it("an empty AI plan rolls the turn over immediately — no freeze, no income farm (review F1)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // The AI has no armies and no cities (all flipped to the player) and
     // nothing to order: the plan is empty. Reachable in play before S-07.
     const stripped: GameState = {
@@ -451,7 +469,7 @@ describe("gameReducer", () => {
   });
 
   it("aiStep skips an illegal planned action without failing the turn", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     const state: typeof base = {
       ...base,
       aiPlan: [
@@ -475,7 +493,7 @@ describe("gameReducer", () => {
   });
 
   it("aiStep traces a stale planned attack whose target an earlier action destroyed (G3, seed 1)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // Two Soviet tank armies within reach of Brest; one German defender there.
     // The first attack destroys the defender and captures the city, so the
     // second attack targets a field held by the AI's own army — not a battle.
@@ -522,7 +540,7 @@ describe("gameReducer", () => {
   });
 
   it("aiStep traces an illegal order — the plan's own earlier order took the last slot (G3)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // Brest has a single production slot: the second order was legal against
     // the planned-from state but not against the world one action later.
     const state: GameState = {
@@ -543,7 +561,7 @@ describe("gameReducer", () => {
   });
 
   it("aiStep traces two consecutive skips and still executes the legal action after them (G3)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     const state: GameState = {
       ...base,
       aiPlan: [
@@ -565,7 +583,7 @@ describe("gameReducer", () => {
   });
 
   it("an illegal action as the last plan entry still rolls the turn over (G3)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     const state: GameState = {
       ...base,
       aiPlan: [
@@ -584,11 +602,17 @@ describe("gameReducer", () => {
   });
 
   it("aiStep propagates developer errors (lesson: bare catch masks them)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // Corrupted army (units: null) — the strength computation throws TypeError,
     // which the skip path must NOT swallow.
     const armies = [
-      { id: "R1", owner: "soviet" as const, fieldId: "bug-river", units: null, movementPoints: 2 },
+      {
+        id: "R1",
+        owner: "soviet" as const,
+        fieldId: "bug-river",
+        units: null as unknown as UnitInstance[],
+        movementPoints: 2,
+      },
       {
         id: "G1",
         owner: "germany" as const,
@@ -597,7 +621,11 @@ describe("gameReducer", () => {
         movementPoints: 1,
       },
     ];
-    const state = { ...base, armies, aiPlan: [{ kind: "attack", armyId: "R1", targetFieldId: "brest" }] };
+    const state = {
+      ...base,
+      armies,
+      aiPlan: [{ kind: "attack" as const, armyId: "R1", targetFieldId: "brest" }],
+    };
     expect(() => gameReducer(state, { type: "aiStep" })).toThrow();
   });
 
@@ -609,7 +637,7 @@ describe("gameReducer", () => {
   });
 
   it("moveArmy free-capturing the last enemy city sets the winner (S-07)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // Every Soviet-initial city except Brest is already German; undefended
     // Brest is one free capture away — Lublin -> Bug river -> Brest costs 2.
     const sovietCitiesHeld = ["vilnius", "minsk", "smolensk", "moscow", "kiev"];
@@ -636,7 +664,7 @@ describe("gameReducer", () => {
   });
 
   it("attackArmy winning the last enemy city sets the winner (S-07)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // Same one-city-short setup, but Brest is defended — the deciding capture
     // goes through a battle (8 tanks beat 1 infantry on the fixed seed).
     const sovietCitiesHeld = ["vilnius", "minsk", "smolensk", "moscow", "kiev"];
@@ -672,7 +700,7 @@ describe("gameReducer", () => {
   });
 
   it("aiStep setting the winner mid-replay stops the replay without a turn rollover (S-07)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // The USSR holds every German-initial city except Warsaw and attacks it
     // with overwhelming force; one extra planned action must never execute.
     const germanCitiesHeld = ["berlin", "poznan", "gdansk", "koenigsberg", "krakow"];
@@ -726,7 +754,7 @@ describe("gameReducer", () => {
   });
 
   it("aiStep free-capturing the last enemy city via a move sets the winner (S-07 trigger path)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // The USSR holds every German-initial city except an undefended Warsaw;
     // the planned move from Bug river decides the campaign — one extra planned
     // action must never execute (the mid-replay trap, move-kind twin).
@@ -775,7 +803,7 @@ describe("gameReducer", () => {
   });
 
   it("attackArmy winning through an intermediate enemy city sets the winner (S-07 trigger path)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // The target is a terrain field (vistula-river) with a German defender; the
     // shortest attack path lublin-plains -> warsaw -> vistula-river passes through
     // undefended Warsaw — the LAST German-initial city. The deciding capture is
@@ -816,7 +844,7 @@ describe("gameReducer", () => {
   });
 
   it("moveArmy passing through the last enemy city sets the winner (S-07 trigger path)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     // Germany holds every Soviet-initial city except Minsk; the two-field move
     // orsha-plains -> minsk -> bialowieza-forest passes THROUGH undefended Minsk
     // (the deciding flip) and ends on a terrain field.
@@ -847,7 +875,7 @@ describe("gameReducer", () => {
   });
 
   it("the skipped aiStep path still runs the victory check — and cannot invent one (S-07)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
 
     // Direction 1: an already-satisfied condition (synthetic double-satisfaction
     // guard, S-07 plan :20) is not swallowed by a dropped action — the skip path's
@@ -886,7 +914,7 @@ describe("gameReducer", () => {
   });
 
   it("every gameplay action on a finished state is a no-op (S-07 freeze)", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     const finished: GameState = {
       ...base,
       winner: "germany",
@@ -901,7 +929,7 @@ describe("gameReducer", () => {
   });
 
   it("resetGame returns null — the setup screen, even from a finished game", () => {
-    const base = gameReducer(null, { type: "startGame", playerCountryId: "germany", aiCountryId: "soviet", seed: 1 });
+    const base = started();
     const finished: GameState = { ...base, winner: "germany" };
     expect(gameReducer(finished, { type: "resetGame" })).toBeNull();
     expect(gameReducer(base, { type: "resetGame" })).toBeNull();
