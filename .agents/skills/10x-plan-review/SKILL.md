@@ -35,7 +35,7 @@ Read the plan file fully. Also read the sibling `plan-brief.md` in the same chan
 - **Current State Analysis** — documented constraints and gotchas
 - **Scope boundaries** — "What We're NOT Doing"
 - **Phases** — file paths, changes, dependencies
-- **Decisions** and **assumptions** (explicit and implicit)
+- **Decisions** and **assumptions** (explicit and implicit) — note for yourself any ranking or selection term the plan relies on ("top N", "latest", "active", "duplicate") whose tie case the plan never decides; it feeds Blind Spots below
 - **Progress section** — the canonical `## Progress` block at the bottom of the plan (see `references/progress-format.md`)
 
 Before any code verification, check the plan against itself. These three scans often catch the highest-value issues — problems the plan author discovered but didn't fully follow through on:
@@ -54,8 +54,8 @@ Before any code verification, check the plan against itself. These three scans o
 ## Step 2: Grounding
 
 Quick, no sub-agents:
-- **Paths**: Execute a shell command to list files (`ls -l`) on ≥5 file paths the plan claims to modify. Non-existent paths are critical.
-- **Symbols**: Execute a shell command to search for specific functions/config keys the plan references (`grep`).
+- **Paths**: List files in the directory for ≥5 file paths the plan claims to modify. Non-existent paths are critical.
+- **Symbols**: Search for specific functions/config keys the plan references.
 - **Brief↔plan consistency**: phases, decisions, scope match?
 
 Report inline: `Grounding: 5/5 paths ✓, 3/3 symbols ✓, brief↔plan ✓`. Only escalate to a finding on failure.
@@ -64,7 +64,7 @@ Report inline: `Grounding: 5/5 paths ✓, 3/3 symbols ✓, brief↔plan ✓`. On
 
 Skip if `--quick`.
 
-From Steps 1–2, identify the **3–5 riskiest claims** in the plan — things that, if wrong, force significant rework. Launch **one** sub-agent with three combined tasks:
+From Steps 1–2, identify the **3–5 riskiest claims** in the plan — things that, if wrong, force significant rework. Launch **one** sub-agent (`subagent_type: "general-purpose"`) with three combined tasks:
 
 1. **Verify the riskiest claims** against the actual code. For each: what does the code show, does it confirm or contradict the plan, with file:line evidence.
 2. **Blast-radius sweep**: for functions, constants, or endpoints the plan modifies, search the codebase for other callers/importers not mentioned in the plan. These are files the plan doesn't know it's affecting.
@@ -86,7 +86,7 @@ For each phase: "if I removed this, would the end state still be achievable?" Wa
 Does this fit the existing system? New patterns where existing ones would work (pattern proliferation). Clean module boundaries and correct dependency direction. High-blast-radius changes — phases touching many files across modules, changes to shared utilities. Vague "refactor as needed" or "update accordingly" that will spiral.
 
 ### Blind Spots
-What didn't the plan consider? Error paths (only happy path described?), rollback story (phase 3 fails — can we revert?), resource/cost impact (API calls, computational work — what does this cost at expected usage?), default value changes (a default that triples cost or time should be called out), testing gaps, security boundaries.
+What didn't the plan consider? Error paths (only happy path described?), rollback story (phase 3 fails — can we revert?), resource/cost impact (API calls, computational work — what does this cost at expected usage?), default value changes (a default that triples cost or time should be called out), testing gaps, security boundaries. A boundary the plan leaves to the code: a term it uses but never decides at the tie (the Nth vs N+1th on equal values, the unit of a count, the exact instant of a state change) — flag it when the only answer is whatever the implementation does today.
 
 ### Plan Completeness
 Is the document actionable? File paths specific (not "somewhere in src/")? Changes at function/method level? Success criteria with runnable commands? TBDs, TODOs, or placeholder sections?
@@ -231,19 +231,18 @@ Plain text, box-drawing. Findings grouped by severity; omit empty groups. PASS d
 ═══════════════════════════════════════════════════════════
 ```
 
-### Formatting rules for the report
-
-- The **finding title line** holds only the ID and the short title — nothing else. Everything else goes below as labeled fields so each row is short and scannable.
-- **Always pair icons with a word.** Never use a bare icon as the only signal — `❌ CRITICAL`, not just `❌`. This keeps the report readable when skimming and doesn't force the user to memorize what each icon means.
-- **Impact always carries its one-line meaning** (copy from the Impact table — "architectural stakes; think carefully before deciding" / "real tradeoff; pause to reason through it" / "quick decision; fix is obvious and narrowly scoped"). This makes LOW/MEDIUM/HIGH self-explanatory at the point of use instead of relying on the user to remember the table.
-- Severity, Impact, Dimension, Location are each on their own line with aligned labels. Detail starts on its own line under a `Detail:` label so it can wrap naturally.
-
 Then ask:
 
-Ask the user: "Plan review complete. How would you like to proceed?" with options:
-  - "Triage findings" (description: "Walk through each finding and decide.")
-  - "Save report & triage later" (description: "Save the full report. Resume with /10x-plan-review <report-path>.")
-  - "Save report only" (description: "Save and finish — I'll handle the findings myself.")
+Ask the user: "Plan review complete. How would you like to proceed?"
+header: "Plan Review — [N] findings"
+options:
+  - label: "Triage findings"
+    description: "Walk through each finding and decide."
+  - label: "Save report & triage later"
+    description: "Save the full report. Resume with /10x-plan-review <report-path>."
+  - label: "Save report only"
+    description: "Save and finish — I'll handle the findings myself."
+multiSelect: false
 
 ### Saving the report
 
@@ -320,19 +319,28 @@ If entered via saved file: read it, parse `### F` headers, filter to `Decision: 
 Walk findings in severity order (CRITICAL → WARNING → OBSERVATION). For each:
 
 **With 2 fix options:**
-Ask the user: "F[N] — [title]\n\nSeverity: [sev icon] [SEV]\nImpact: [impact icon] [LEVEL] — [meaning]\nDimension: [dim]\nLocation: [loc]\n\nDetail: [detail]\n\n[Fix A block]\n\n[Fix B block]" with options:
-  - "Apply Fix A ⭐" (description: "[Fix A one-liner]")
-  - "Apply Fix B" (description: "[Fix B one-liner]")
-  - "Fix differently" (description: "Different approach — let's discuss.")
-  - "Skip" (description: "Not worth addressing now.")
-  - "Accept risk" (description: "Understood — I'll handle during implementation.")
-  - "Disagree" (description: "Not actually an issue — dismiss.")
+Ask the user: "F[N] — [title]\n\nSeverity: [sev icon] [SEV]\nImpact: [impact icon] [LEVEL] — [meaning]\nDimension: [dim]\nLocation: [loc]\n\nDetail: [detail]\n\n[Fix A block]\n\n[Fix B block]"
+header: "Finding [current] of [total remaining]"
+options:
+  - label: "Apply Fix A ⭐"
+    description: "[Fix A one-liner]"
+  - label: "Apply Fix B"
+    description: "[Fix B one-liner]"
+  - label: "Fix differently"
+    description: "Different approach — let's discuss."
+  - label: "Skip"
+    description: "Not worth addressing now."
+  - label: "Accept risk"
+    description: "Understood — I'll handle during implementation."
+  - label: "Disagree"
+    description: "Not actually an issue — dismiss."
+multiSelect: false
 
 **With 1 fix option:** same options, but replace "Apply Fix A/B" with a single "Fix in plan".
 
 **Handling responses:**
-- **Apply Fix A/B / Fix in plan**: show the exact plan edit (before/after). Brief confirmation, then apply the edit to the plan file. Mark FIXED (record which fix, e.g. "Fixed via Fix A").
-- **Fix differently**: ask the preferred approach, apply the edit to the plan file, mark FIXED.
+- **Apply Fix A/B / Fix in plan**: show the exact plan edit (before/after). Brief confirmation, then apply. Mark FIXED (record which fix, e.g. "Fixed via Fix A").
+- **Fix differently**: ask the preferred approach, apply, mark FIXED.
 - **Skip** → SKIPPED. **Accept risk** → ACCEPTED. **Disagree** → DISMISSED. Move on, don't argue.
 
 After each decision, if working from a saved file, update its `Decision:` field.

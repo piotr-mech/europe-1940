@@ -4,7 +4,7 @@ Read this file only when Step 0 of SKILL.md determined the invocation touches th
 
 ## States
 
-State is **derived, never stored separately**. The only persistence is `context/foundation/roadmap.md` (frontmatter + item statuses). Detection is a pure read — no sidecar state file, ever (repo convention: the legacy `.implement-state.json` sidecar was killed for exactly this failure mode).
+State is **derived, never stored separately**. The only persistence is `context/foundation/roadmap.md` (frontmatter + item statuses). Detection is a pure read — no sidecar state file, ever (repo convention: the legacy implement-state sidecar was killed for exactly this failure mode).
 
 | State            | Detection rule                                                                                     |
 | ---------------- | -------------------------------------------------------------------------------------------------- |

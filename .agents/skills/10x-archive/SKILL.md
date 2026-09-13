@@ -54,7 +54,7 @@ The result is `<change-id>`.
 
 Two pre-flight checks. Either failing blocks the archive.
 
-**1. Uncommitted edits inside the change folder.** Run a shell command to check `git status --porcelain "context/changes/<change-id>/"`.
+**1. Uncommitted edits inside the change folder.** Run a bash command to check `git status --porcelain "context/changes/<change-id>/"`.
 
 If the output is non-empty, **block** and print:
 
@@ -66,7 +66,7 @@ If the output is non-empty, **block** and print:
 Commit or stash them first, then re-run /10x-archive.
 ```
 
-**2. Pre-existing staged changes anywhere.** The archive commit step (see "Move and stamp" below) bundles whatever is staged at commit time. If the user has unrelated staged changes from earlier work, they'd silently land in the `chore(archive): close ...` commit. Run a shell command to check `git diff --cached --quiet`.
+**2. Pre-existing staged changes anywhere.** The archive commit step (see "Move and stamp" below) bundles whatever is staged at commit time. If the user has unrelated staged changes from earlier work, they'd silently land in the `chore(archive): close ...` commit. Run a bash command to check `git diff --cached --quiet`.
 
 If the exit code is non-zero, **block** and print:
 
@@ -117,11 +117,11 @@ Then ask the user:
     description: `Don't archive. Exit cleanly without further action.`
   multiSelect: false
 
-**Manual-only nudge**: if the Pending Progress check above queued a warning whose breakdown was exactly `0 automated, <Y> manual` with `<Y> ≥ 1`, append ` (Recommended)` to the `Continue archiving` label so the prompt visibly nudges toward archive — manual checks are often deferred-by-design, and archiving is the expected path. In all other cases (mixed pending, automated-only, legacy-fallback warning, or no Progress warning), present the labels verbatim.
+If the Pending Progress check above queued a warning whose breakdown was exactly `0 automated, <Y> manual` with `<Y> ≥ 1`, append ` (Recommended)` to the `Continue archiving` label so the prompt visibly nudges toward archive — manual checks are often deferred-by-design, and archiving is the expected path. In all other cases (mixed pending, automated-only, legacy-fallback warning, or no Progress warning), present the labels verbatim.
 
-- **Continue archiving** → proceed to "Move and stamp" below.
-- **Resume implementation** → print `→ /10x-implement <change-id>` and copy that to clipboard via `pbcopy 2>/dev/null || clip.exe 2>/dev/null || xclip -selection clipboard 2>/dev/null || true` (or `Set-Clipboard` on PowerShell) (best effort, cross-platform). STOP.
-- **Cancel** → print `Cancelled. Folder unchanged.` and STOP.
+- If the user chooses **Continue archiving** → proceed to "Move and stamp" below.
+- If the user chooses **Resume implementation** → print `→ /10x-implement <change-id>` and copy that to clipboard via `pbcopy 2>/dev/null || clip.exe 2>/dev/null || xclip -selection clipboard 2>/dev/null || true` (or `Set-Clipboard` on PowerShell) (best effort, cross-platform). STOP.
+- If the user chooses **Cancel** → print `Cancelled. Folder unchanged.` and STOP.
 
 If no warnings were queued, skip the prompt and proceed directly.
 
@@ -143,11 +143,11 @@ If no warnings were queued, skip the prompt and proceed directly.
    - If `git mv` fails (not a git repo, or git refuses for some reason), fall back to `mkdir -p context/archive` then `mv "context/changes/<change-id>" "$DEST"`. Print a warning if the fallback was used.
    - Confirm post-move: `[ -d "$DEST" ] && [ ! -d "context/changes/<change-id>" ]`. If either check fails, print a diagnostic and STOP.
 
-4. **Stage the stamp into the rename.** The file editing operation in step 2 modified `change.md` in the working tree, but `git mv` only stages the rename with the file's HEAD content. Run `git add "$DEST/change.md"` so the frontmatter stamp lands in the same commit as the rename.
+4. **Stage the stamp into the rename.** The edit in step 2 modified `change.md` in the working tree, but `git mv` only stages the rename with the file's HEAD content. Run `git add "$DEST/change.md"` so the frontmatter stamp lands in the same commit as the rename.
 
 5. **Close the matching roadmap item.** Run this on **every** archive — the roadmap lookup is mandatory. "Best effort" scopes only the *edits*: a missing roadmap or an edit target that isn't found is skipped silently and never blocks, rolls back, or prompts the archive. It does NOT mean "assume there's no roadmap and skip the check." Not looking is a defect — the confirmation (step 7) must report the outcome either way.
 
-   1. Check for file existence: `test -f context/foundation/roadmap.md`. If absent, skip this step silently.
+   1. Check if `context/foundation/roadmap.md` exists. If absent, skip this step silently.
    2. Capture whether the file is already dirty: `ROADMAP_PREDIRTY=$(git status --porcelain context/foundation/roadmap.md 2>/dev/null)`. (Used in sub-step 7 to decide whether to stage it into the archive commit.)
    3. Read `context/foundation/roadmap.md`. Look for `<change-id>` used as a `Change ID`:
       - in the `## At a glance` table — the row whose **Change ID** column cell equals `<change-id>` exactly;
@@ -155,7 +155,7 @@ If no warnings were queued, skip the prompt and proceed directly.
 
       `<ID>` is that item's roadmap-local id (`F-NN` or `S-NN`); `<Outcome>` is the text of its `- **Outcome:**` line (keep a leading `(foundation) ` if present).
    4. **No match** → print `ℹ context/foundation/roadmap.md has no item with Change ID "<change-id>" — roadmap left untouched.` and skip the rest of this step. Match is exact-string only; a roadmap slice can spawn several changes, so a near-miss is intentionally *not* closed.
-   5. **Match found** → apply the three edits below using file editing operations. Each is independent and best effort: if a target isn't where the `/10x-roadmap` template puts it (hand-edited roadmap, older format), skip that sub-edit, keep going, and note what was skipped — never abort the archive over roadmap shape. Touch only the fields named here; leave `Outcome`, `Prerequisites`, `Parallel with`, `Risk`, etc. alone.
+   5. **Match found** → apply the three edits below using a file editing operation. Each is independent and best effort: if a target isn't where the `/10x-roadmap` template puts it (hand-edited roadmap, older format), skip that sub-edit, keep going, and note what was skipped — never abort the archive over roadmap shape. Touch only the fields named here; leave `Outcome`, `Prerequisites`, `Parallel with`, `Risk`, etc. alone.
       1. **`## At a glance`** — in the matched table row, set the **Status** column cell to `done`.
       2. **Item body** — in the `### <ID>: …` block, rewrite the `- **Status:**` line to `- **Status:** done`.
       3. **`## Done` section** — append one bullet under the `## Done` heading, in that section's documented format:

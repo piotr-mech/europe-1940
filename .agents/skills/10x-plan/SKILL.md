@@ -2,7 +2,6 @@
 name: 10x-plan
 description: Create detailed implementation plans with thorough research and iteration
 ---
-```
 
 # Implementation Plan
 
@@ -109,6 +108,7 @@ Before any reading, identify what kinds of upstream artifacts the user passed in
    - Identify any discrepancies or misunderstandings
    - Note assumptions that need verification
    - Determine true scope based on codebase reality
+   - **Run a smallest-counterexample pass before choosing interview questions, and keep the result as a working note.** It fires on the ranking, selection and state words the request uses without defining — "top N", "winner", "best", "latest", "first", "duplicate", "active", "until the end". For ordered selections, place equal comparison values across the cutoff; for counted sets, vary the identity/equivalence rule; for state thresholds, vary inclusivity and governing clock. For each case jot one line for yourself — the term, the counterexample, what the user would see differently — *before* looking up what the code does there; then read the implementation and add its answer as one more line. A tiebreak the code performs by id, insertion order or array position is not a decision anyone made, so it never closes the note. Every note whose outcomes differ on screen becomes a first-round question; existing behaviour supplies one option, not the answer. The note is scaffolding for the interview, not a plan section.
 
 5. **Present informed understanding and assess complexity**:
 
@@ -121,6 +121,7 @@ Before any reading, identify what kinds of upstream artifacts the user passed in
    - [Key discovery — code reference, existing asset, prior work, or domain constraint]
    - [Relevant pattern, convention, or constraint discovered]
    - [Potential complexity or edge case identified]
+   - [Optional: a word in the request I'm reading two ways — the counterexample and what the code does there today — that I'll ask about first]
    ```
 
    Then assess the task complexity and present it to the user for confirmation:
@@ -138,7 +139,7 @@ Before any reading, identify what kinds of upstream artifacts the user passed in
    Does this feel right, or would you adjust the complexity level?
    ```
 
-   Ask the user: "Does this complexity assessment match your expectations?" with options:
+   Ask the user: "Does this complexity assessment match your expectations?" with the following options:
    - "Agree — proceed with [N] questions" (description: "The assessment is accurate, let's dig into the details.")
    - "Higher — ask more questions" (description: "There's more complexity than identified. I'll explain what's missing.")
    - "Lower — fewer questions needed" (description: "This is simpler than it looks. Let's keep it focused.")
@@ -171,14 +172,14 @@ Before any reading, identify what kinds of upstream artifacts the user passed in
 
    **Example question with recommendations (software):** `Conflicts` is `[S]` — solution architecture; always asked even when a frame defined the problem.
 
-   Ask the user: "How should the system handle conflicts when two users edit simultaneously?" with options:
+   Ask the user: "How should the system handle conflicts when two users edit simultaneously?" with the following options:
    - "Last write wins" (description: "Later save silently overwrites earlier one. · Strength: Zero added complexity, no UI changes needed. · Tradeoff: Users can lose work without warning — acceptable only if edits are rare or low-stakes.")
    - "⭐ Recommended: Notify and merge" (description: "Show conflict to user, let them choose which version to keep. · Strength: Prevents data loss while keeping UX simple — matches the pattern in existing EditPanel component. · Tradeoff: Adds a conflict resolution modal and WebSocket subscription for real-time detection.")
-   - "Lock-based" (description: "First editor locks the resource; others see read-only until released. · Strength: Prevents conflicts entirely — simplest mental model for users. · Tradeoff: Stale locks require TTL + cleanup logic; blocks legitimate concurrent work.")
+   - "Lock-based" (description: "First editor locks the resource; others see read-only until released. · Strength: Prevents conflicts entirely — simplest mental model for users. · Tradeoff: Stale locks requires TTL + cleanup logic; blocks legitimate concurrent work.")
 
    **Example question with recommendations (non-software — content/strategy):** `Depth` is `[D]` — diagnostic about audience/scope; skip if a frame brief already settled who this is for.
 
-   Ask the user: "What depth of technical detail should the course module target?" with options:
+   Ask the user: "What depth of technical detail should the course module target?" with the following options:
    - "Conceptual overview" (description: "High-level principles, no code. · Strength: Accessible to all skill levels, faster to produce. · Tradeoff: Advanced learners may find it too shallow — risks losing engagement.")
    - "⭐ Recommended: Hands-on with guided examples" (description: "Concepts paired with step-by-step exercises. · Strength: Balances understanding and practice — matches the format that got highest completion rates in 10xDevs2. · Tradeoff: 2-3x more prep time per lesson; requires working example repos.")
    - "Deep dive with open challenges" (description: "Minimal scaffolding, real-world problems. · Strength: Forces genuine problem-solving, highest learning retention. · Tradeoff: High dropout risk for less experienced learners; harder to support at scale.")
@@ -191,7 +192,7 @@ Before any reading, identify what kinds of upstream artifacts the user passed in
 
    **Universal categories (all domains, all levels):**
    - **Scope boundaries** `[D]`: What's in vs out
-   - **Edge cases / failure modes** `[S]`: What happens when things go wrong or get weird (implementation handling, even if a frame named the observation class)
+   - **Edge cases / failure modes** `[S]`: What happens when things go wrong or get weird (implementation handling, even if a frame named the observation class). Start from the counterexample notes of Step 1.1 item 4: put the concrete data in the question, and when the code already implements one reading, list it as an option labelled `(current behaviour)` — star it only if its outcome is one the user would defend without mentioning the implementation
    - **Success criteria** `[D]`: How do we know this worked — from the end user's or stakeholder's perspective
    - **Priority** `[D]`: Must-have vs nice-to-have — what gets cut if time is tight
 
@@ -273,7 +274,7 @@ After getting initial clarifications from the user, NOW is when you address the 
    - Read the specific files/directories they mention
    - Only proceed once you've verified the facts yourself
 
-3. **Create research tasks** using the Task tool to track exploration (these appear in the user's status bar). Update them via the Task tool as research completes.
+3. **Create research tasks** using TaskCreate to track exploration (these appear in the user's status bar). Update them via TaskUpdate as research completes.
 
 4. **Spawn parallel sub-tasks for comprehensive research**:
    - Create multiple Task agents to research different aspects concurrently
@@ -307,9 +308,9 @@ After getting initial clarifications from the user, NOW is when you address the 
    - [Pattern or convention to follow]
    ```
 
-   Then, if there are multiple valid approaches, present them as structured choices to the user:
+   Then, if there are multiple valid approaches, present them as structured choices:
 
-   Ask the user: "Which implementation approach should we use?" with options:
+   Ask the user: "Which implementation approach should we use?" with the following options:
    - "[Option A name]" (description: "[Key tradeoffs: simpler but X, or faster but Y]")
    - "[Option B name]" (description: "[Key tradeoffs]")
 
@@ -336,7 +337,7 @@ Once aligned on approach:
    3. [Phase name] - [what it accomplishes]
    ```
 
-   Then ask the user: "Does this phase breakdown look right?" with options:
+   Then ask the user: "Does this phase breakdown look right?" with the following options:
    - "Looks good, proceed" (description: "Write the detailed plan with these phases.")
    - "Needs adjustment" (description: "I'll explain what to change before you write the detailed plan.")
    - "Too granular" (description: "Combine some phases — this is simpler than it looks.")
@@ -634,13 +635,14 @@ Do this in Step 4 (right after the `change.md` → `planned` stamp). The lookup 
    1. **`## At a glance`** — set the matched row's **Status** cell to `planning`.
    2. **Item body** — rewrite the item's `- **Status:**` line to `- **Status:** planning`.
 
-   Then update the roadmap frontmatter `updated:` to `<today>` (skip if there is no frontmatter).
+   Then bump the roadmap frontmatter `updated:` to `<today>` (skip if there is no frontmatter).
 4. `/10x-plan` does not commit its own artifacts; leave the flip in the working tree. It is committed later alongside the change's first `/10x-implement` phase (which re-flips the same item to `in-progress`).
 
 ## Important Guidelines
 
 1. **Be Skeptical**:
    - Question vague requirements
+   - A ranking or selection word the request uses without defining stays undecided until its counterexample has been put to the user (Step 1.1 item 4)
    - Identify potential issues early
    - Ask "why" and "what about"
    - Don't assume - verify with code, files, or context
@@ -664,7 +666,7 @@ Do this in Step 4 (right after the `change.md` → `planned` stamp). The lookup 
    - Include "what we're NOT doing"
 
 5. **Track Progress**:
-   - Use the Task tool to create planning tasks and update them to mark them completed as you progress
+   - Use TaskCreate to create planning tasks and TaskUpdate to mark them completed as you progress
    - Tasks appear in the user's status bar for visibility
    - Mark tasks completed as you finish research areas
 
@@ -683,6 +685,7 @@ Do this in Step 4 (right after the `change.md` → `planned` stamp). The lookup 
    - Do NOT write the plan with unresolved questions
    - The implementation plan must be complete and actionable
    - Every decision must be made before finalizing the plan
+   - A counterexample the user decided lands in sections that already exist — a named test or success criterion when accepted, "What We're NOT Doing" when declined. No new section for it
    - "Critical Implementation Details" subsections are opt-in: include them only when a real constraint, gotcha, or ordering requirement applies. Default to omission. A plan without that section is not incomplete.
 
 8. **Describe intent, not implementation**:
@@ -729,20 +732,17 @@ Planning can be context-heavy due to research + iteration. Keep context efficien
   ```
   This lets `/10x-plan` reload the draft and continue iterating with full context available.
 
-## Example Question Probing by Feature Type
+## Example Probing by Feature Type
 
 ### Example 1: Software / UI Feature — MEDIUM complexity (e.g., Pagination)
 
 Mixed: `Loading UX` is `[S]` (UI behavior — solution detail); `Scale` is `[D]` (problem boundary — how big is the dataset). With a frame brief, ask only `Loading UX`; the scale should already be in the Reframed (or Confirmed) Problem Statement.
 
-Ask the user: "What should the user see while new items load?" with options:
-
+Ask the user: "What should the user see while new items load?" with the following options:
 - "Inline spinner" (description: "Small spinner below existing content. · Strength: User keeps seeing current items, minimal UI work. · Tradeoff: Feels slower than skeleton — users see a generic spinner instead of content shape.")
 - "⭐ Recommended: Skeleton screens" (description: "Placeholder shapes matching item layout. · Strength: Perceived performance is 30-40% better — matches existing LoadingSkeleton component pattern. · Tradeoff: Requires a skeleton variant per item type; breaks if layout changes.")
 - "Full-page spinner" (description: "Replace content with spinner. · Strength: Simplest to implement — one component, no layout concerns. · Tradeoff: Blocks all interaction; feels broken on slow connections.")
-
-Ask the user: "How many items should this handle gracefully?" with options:
-
+Ask the user: "How many items should this handle gracefully?" with the following options:
 - "⭐ Recommended: Hundreds" (description: "Standard offset pagination. · Strength: Simple, well-understood, works with existing SQL queries. · Tradeoff: Breaks down past ~5k items — acceptable given current data volumes.")
 - "Thousands" (description: "Cursor-based pagination + virtual scrolling. · Strength: Handles growth without performance cliff. · Tradeoff: 2-3x more implementation work; changes API contract.")
 - "Tens of thousands" (description: "Server-side filtering + virtual list + search. · Strength: Scales indefinitely. · Tradeoff: Significant complexity; requires search index and new API design.")
@@ -751,14 +751,11 @@ Ask the user: "How many items should this handle gracefully?" with options:
 
 Mixed: `Outcome` is `[D]` (defines what success looks like — pure problem framing); `Levels` is `[S]` (audience-handling strategy — how to structure delivery). With a frame brief, ask only `Levels`; the outcome should be settled.
 
-Ask the user: "What should the learner be able to DO after this module — not just know?" with options:
-
+Ask the user: "What should the learner be able to DO after this module — not just know?" with the following options:
 - "⭐ Recommended: Build a working prototype" (description: "Learner produces a functional artifact using the techniques taught. · Strength: Forces genuine skill transfer — the artifact proves competence. Matches the 'Innovate' lesson format from 10xDevs3. · Tradeoff: Requires well-designed starter templates and clear acceptance criteria; takes 2-3x longer to prep.")
 - "Complete a guided exercise" (description: "Step-by-step walkthrough with expected output. · Strength: Low barrier — everyone finishes, builds confidence. · Tradeoff: May produce 'tutorial zombies' who can follow but not apply independently.")
 - "Pass a knowledge check" (description: "Quiz or code review proving conceptual understanding. · Strength: Fast to create, easy to grade at scale. · Tradeoff: Tests recognition not production — learner may understand but not be able to execute.")
-
-Ask the user: "How should this module handle different skill levels in the audience?" with options:
-
+Ask the user: "How should this module handle different skill levels in the audience?" with the following options:
 - "Single track, advanced" (description: "One path targeting experienced devs. · Strength: Deep content, no hand-holding, respects expert time. · Tradeoff: Alienates beginners — they'll drop off or flood support channels.")
 - "⭐ Recommended: Layered depth" (description: "Core path everyone follows + optional deep-dive sections. · Strength: Everyone gets value; advanced learners self-select into harder material. · Tradeoff: More content to maintain; risk of 'optional' sections being ignored.")
 - "Separate beginner/advanced tracks" (description: "Two parallel paths diverging early. · Strength: Each audience gets perfectly targeted content. · Tradeoff: 2x production cost; splitting a small cohort may hurt community dynamics.")
@@ -767,8 +764,7 @@ Ask the user: "How should this module handle different skill levels in the audie
 
 `Bottleneck` is `[D]` — pure problem framing (which problem to solve). This is exactly the kind of question a frame exists to settle. With a frame brief, skip this entirely; the leading hypothesis is the bottleneck.
 
-Ask the user: "What's the primary bottleneck in the current newsletter pipeline?" with options:
-
+Ask the user: "What's the primary bottleneck in the current newsletter pipeline?" with the following options:
 - "⭐ Recommended: Curation takes too long" (description: "Finding and evaluating links is the slow step. · Strength: Directly targets time-to-publish — automating curation yields the biggest time savings based on current pipeline timings. · Tradeoff: Automated curation risks losing the personal editorial voice that subscribers value.")
 - "Writing the commentary" (description: "Links are ready but writing around them is slow. · Strength: AI-assisted drafting can cut this in half. · Tradeoff: Heavy AI drafting can make the newsletter feel generic — needs careful voice calibration.")
 - "Distribution and scheduling" (description: "Content is ready but publishing is manual. · Strength: Easiest to automate — clear inputs and outputs. · Tradeoff: Lowest impact if curation or writing is still the bottleneck.")

@@ -90,7 +90,7 @@ Update the task: activeForm "Verifying success criteria"
 
 For each reviewed phase:
 
-**Automated**: run each command from the "Automated Verification" checkboxes using the shell. Record command, pass/fail, actual output (truncate if huge).
+**Automated**: run each command from the "Automated Verification" checkboxes using a shell. Record command, pass/fail, actual output (truncate if huge).
 
 **Manual**: in the `## Progress` section, check Manual items as `- [x]` vs `- [ ]`. Flag items marked complete that lack observable evidence in the diff (possible rubber-stamping); acknowledge unchecked items as pending.
 

@@ -11,13 +11,6 @@ description: >
 
 # Shape: Facilitate Discovery (Greenfield & Brownfield) Before /10x-prd
 
-## Language
-
-Conversation with the user is in **Polish**; everything written to disk is in **English**.
-
-- **Polish (spoken only)**: every question, option label, echo-back, gray-area prompt, scope-cost warning, quality cross-check table, and completion summary. The English templates in this skill define *structure and content*, not language — translate them on the fly when speaking to the user.
-- **English (everything written)**: the ENTIRE `shape-notes.md` and any other artifact — section headings (`## Vision & Problem Statement`, `## Access Control`, …), FR lines (`FR-NNN`, `Priority: must-have`, `Change: new`), frontmatter keys (`checkpoint:`, `context_type:`, `product_type`, `target_scale`, `timeline_budget`), and the user's captured domain content. When the user describes their idea in Polish, capture the *substance verbatim in meaning* but write it in English (translation is mechanical formatting, not content generation).
-
 This skill is the head of the bootstrap chain. For greenfield: `/10x-shape → /10x-prd → 10x-tech-stack-selector → bootstrapper`. For brownfield: `/10x-shape → /10x-prd → 10x-stack-assess → 10x-health-check`. Its single job: walk a user from "I have an idea" (greenfield) or "I want to change this system" (brownfield) to a structured `context/foundation/shape-notes.md` that `/10x-prd` can turn into a PRD that conforms to the locked schema.
 
 The skill is a **facilitator**, not a content generator. It NEVER writes vision, FRs, business-logic rules, or any other domain content the user did not say. Its value is the question shape and the order of questions, not the answers it offers.
