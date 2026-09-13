@@ -423,20 +423,20 @@ behavior-identical (Phase 1 manual check confirms).
 
 #### Automated
 
-- [x] 3.1 Self-verification test red → ESLint engine rule green (engine clean, fixture violations caught)
-- [x] 3.2 Canary check: `Math.random()` in an engine file fails `npm run lint`, then reverted
-- [x] 3.3 `npm run lint` green on the untouched repo
+- [x] 3.1 Self-verification test red → ESLint engine rule green (engine clean, fixture violations caught) — 0ee4aed
+- [x] 3.2 Canary check: `Math.random()` in an engine file fails `npm run lint`, then reverted — 0ee4aed
+- [x] 3.3 `npm run lint` green on the untouched repo — 0ee4aed
 
 #### Manual
 
-- [x] 3.4 Review `git diff eslint.config.js`: scope limited to the engine allowlist
+- [x] 3.4 Review `git diff eslint.config.js`: scope limited to the engine allowlist — 0ee4aed
 
 ### Phase 4: Cookbook & Plan Sync
 
 #### Automated
 
-- [ ] 4.1 `npm test` + `npm run lint` + `npm run build` all green (final run)
+- [x] 4.1 `npm test` + `npm run lint` + `npm run build` all green (final run)
 
 #### Manual
 
-- [ ] 4.2 `test-plan.md` §6.4 written, §6.6 Phase 3 note appended, §5 gate marked enforced, §8 ledger bumped
+- [x] 4.2 `test-plan.md` §6.4 written, §6.6 Phase 3 note appended, §5 gate marked enforced, §8 ledger bumped

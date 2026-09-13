@@ -6,7 +6,7 @@
 >
 > Refresh: re-run `/10x-test-plan --refresh` when stale (see §8).
 >
-> Last updated: 2026-09-12
+> Last updated: 2026-09-13
 
 ## 1. Strategy
 
@@ -147,7 +147,7 @@ phase lands; before that, the gate is `planned`.
 |------|-------|-----------|---------|
 | lint (type-checked rules) + build | CI on `main` (wired) | required | syntactic / type drift |
 | unit + integration (`npm test`) | CI on `main` (test step wired since F-01; Phase 5 verifies completeness) | required | logic regressions (#1–#6) |
-| determinism static rule | local + CI | required after §3 Phase 3 | wall-clock / unseeded randomness entering the reducer path |
+| determinism static rule | local + CI | required — enforced since §3 Phase 3 (checked: 2026-09-13) | wall-clock / unseeded randomness entering the reducer path |
 | simulation harness (balance band) | CI on `main` | required after §3 Phase 2 | balance drift (#1) |
 | multimodal visual review (selective) | on demand / CI on PR | optional after §3 Phase 5 | readability/visual issues deterministic tests cannot see |
 
@@ -189,7 +189,16 @@ the relevant rollout phase ships; before that, the sub-section reads
 
 ### 6.4 Adding a persistence / determinism invariant test
 
-- TBD — see §3 Phase 3.
+- **Location**: `src/lib/` — persistence suites in `persistence.test.ts`; replay-level proofs in `replay.test.ts`; the static rule's self-verification in `determinism-rule.test.ts`.
+- **Reference tests**:
+  - Persist decision contract + epoch discipline (past/future version discard, old-schema-shape fixture round-trip, late-game save→load→save byte-identity): `src/lib/persistence.test.ts` (the `persistDecision` describe + the version/epoch/round-trip cases).
+  - Replay equality (resumed ≡ uninterrupted): `src/lib/replay.test.ts` — equal `aiTurnLog` and deep-equal final state incl. `rngSeed`, at cut points mid-AI-replay.
+  - Static rule self-verification: `src/lib/determinism-rule.test.ts` — lints `DETERMINISM_ENGINE_FILES` (exported from `eslint.config.js`; the rule's scope and the test's scope are one constant, so they cannot diverge).
+- **Mocking policy**: storage only — `MemoryStorage` from `@/lib/test-utils` via `vi.stubGlobal("localStorage", …)`. The reducer and RNG are never mocked; expectations are run-vs-run comparisons (two real runs compared), never precomputed literals.
+- **Schema-evolution rule**: any `GameState` change ships in the same commit with either a `SAVE_VERSION` bump (old saves discard cleanly) or a guard extension + an old-shape epoch fixture round-trip in `persistence.test.ts`. Both routes are sanctioned; neither may ship untested.
+- **Engine allowlist**: adding a module to the reducer path means adding it to `DETERMINISM_ENGINE_FILES` in `eslint.config.js` — `src/lib/` is NOT the reducer path (persistence, utils, harnesses live there too). The self-test fails if scope and reality diverge.
+- **When NOT to use**: deep/adversarial save validation — guard looseness is deliberate (save-resume review F1); component-level effect testing — extract a pure helper instead (the `persistDecision` pattern).
+- **Run locally**: `npm test`; the rule's canary is `npm run lint` with a deliberate violation in an engine file (verified once in Phase 3, then reverted).
 
 ### 6.5 Adding an AI-native visual review (critical screens)
 
@@ -202,6 +211,7 @@ here capturing anything surprising the rollout phase taught.)
 
 - **Phase 1 (testing-regression-floor)**: writing the floor found and fixed a real bug — an illegal planned action as the *last* AI plan entry never rolled the turn over (stuck campaign). Also two unconstructibles to remember: exact 0.4/0.6 gate probabilities are irrational in k = D/A (bracket them instead), and consecutive chained mulberry32 draws correlate (≈0.07 analytic-vs-empirical deviation near even strengths) — the coupling test excludes that band until draws are decorrelated.
 - **Phase 2 (testing-balance-simulation)**: the first measured baseline says the game is NOT balanced — the USSR wins 100% of decided campaigns (38/38 across 100 mirrored campaigns) and 62% of campaigns stall at the turn cap; Germany's economic head start inverts into a 0.27 income ratio. Bands were deliberately left unpinned (descriptive-first; thresholds from this report would be an implementation-mirror oracle). Research also surfaced dead mechanics — the advertised German "Blitzkrieg" is unimplemented and `bonusVsTank` is never read — queued for the future balance-tuning change.
+- **Phase 3 (testing-persistence-determinism)**: the rollout opened on a pre-existing red — the balance baseline's path had moved with its change folder into `context/archive/`, and the byte-identity test followed it (archive moves must update `BASELINE_REPORT_PATH`). The finished-game invariant moved out of UI effect ordering into a tested pure helper (`persistDecision`). The determinism gate is an explicit 12-file engine allowlist — `src/lib/` is not the reducer path, so scope is a maintained list, not a directory glob.
 
 ## 7. What We Deliberately Don't Test
 
@@ -220,7 +230,7 @@ contributors should respect these unless the underlying assumption changes.
 
 ## 8. Freshness Ledger
 
-- Strategy (§1–§5) last reviewed: 2026-09-09
+- Strategy (§1–§5) last reviewed: 2026-09-13 (§5 gate live: determinism static rule)
 - Stack versions last verified: 2026-09-09
 - AI-native tool references last verified: 2026-09-09
 
