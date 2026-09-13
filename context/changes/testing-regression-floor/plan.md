@@ -325,6 +325,6 @@ No data migration. Persistence compatibility is a constraint, not a change: old 
 
 #### Automated
 
-- [x] 5.1 Soak suite green (60 turns × ~5 seeds, all per-turn invariants)
-- [x] 5.2 Total suite ≤ ~30s; lint + build green
-- [x] 5.3 test-plan.md §6.2 filled, §6.6 note appended
+- [x] 5.1 Soak suite green (60 turns × ~5 seeds, all per-turn invariants) — 64c2a9f
+- [x] 5.2 Total suite ≤ ~30s; lint + build green — 64c2a9f
+- [x] 5.3 test-plan.md §6.2 filled, §6.6 note appended — 64c2a9f
