@@ -398,26 +398,26 @@ behavior-identical (Phase 1 manual check confirms).
 
 #### Automated
 
-- [x] 1.1 `persistDecision` helper tests red → implementation green (null→skip, winner→clear, played→save)
-- [x] 1.2 GameScreen autosave effect delegates to `persistDecision` (full suite + lint green)
-- [x] 1.3 Past-version (`SAVE_VERSION - 1`) envelope discarded + entry removed
-- [x] 1.4 Old-shape epoch fixture round-trips deep-equal through the widened guard
+- [x] 1.1 `persistDecision` helper tests red → implementation green (null→skip, winner→clear, played→save) — 7bdd87f
+- [x] 1.2 GameScreen autosave effect delegates to `persistDecision` (full suite + lint green) — 7bdd87f
+- [x] 1.3 Past-version (`SAVE_VERSION - 1`) envelope discarded + entry removed — 7bdd87f
+- [x] 1.4 Old-shape epoch fixture round-trips deep-equal through the widened guard — 7bdd87f
 
 #### Manual
 
-- [x] 1.5 `npm run dev`: turn-play refresh resumes; post-victory refresh shows setup screen with save key gone
+- [x] 1.5 `npm run dev`: turn-play refresh resumes; post-victory refresh shows setup screen with save key gone — 7bdd87f
 
 ### Phase 2: Round-Trip Corpus & Replay Equality
 
 #### Automated
 
-- [ ] 2.1 Late-game state save→load→save round-trip (deep-equal state, byte-identical envelope)
-- [ ] 2.2 Replay-equality proof at ≥ 2 mid-replay cut points (equal `aiTurnLog`, deep-equal final state)
-- [ ] 2.3 `removeItem` throwing DOMException still degrades without crashing
+- [x] 2.1 Late-game state save→load→save round-trip (deep-equal state, byte-identical envelope)
+- [x] 2.2 Replay-equality proof at ≥ 2 mid-replay cut points (equal `aiTurnLog`, deep-equal final state)
+- [x] 2.3 `removeItem` throwing DOMException still degrades without crashing
 
 #### Manual
 
-- [ ] 2.4 `npm run dev`: mid-AI-replay refresh visibly continues the AI queue
+- [x] 2.4 `npm run dev`: mid-AI-replay refresh visibly continues the AI queue
 
 ### Phase 3: Static Determinism Rule
 

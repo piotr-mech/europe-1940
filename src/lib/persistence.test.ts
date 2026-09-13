@@ -2,24 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createInitialGameState, gameReducer } from "@/lib/game-state";
 import { clearGame, loadGame, persistDecision, SAVE_STORAGE_KEY, SAVE_VERSION, saveGame } from "@/lib/persistence";
+import { drainAiTurn, MemoryStorage } from "@/lib/test-utils";
 import type { GameState } from "@/types";
-
-/** In-memory Storage stand-in — the vitest environment is node (no localStorage). */
-class MemoryStorage {
-  private map = new Map<string, string>();
-
-  getItem(key: string): string | null {
-    return this.map.get(key) ?? null;
-  }
-
-  setItem(key: string, value: string): void {
-    this.map.set(key, value);
-  }
-
-  removeItem(key: string): void {
-    this.map.delete(key);
-  }
-}
 
 let storage: MemoryStorage;
 
@@ -57,6 +41,25 @@ function oldEpochState(): GameState {
     ...base,
     aiTurnLog: [{ kind: "move", armyId: "R2", fromFieldId: "minsk", toFieldId: "smolensk", capturedCity: false }],
   };
+}
+
+/**
+ * A reducer-reached late-game state (seed 7): three build turns, then the player
+ * attacks — many armies, full production queues, a populated battle report.
+ */
+function lateGameState(): GameState {
+  let state: GameState | null = gameReducer(null, {
+    type: "startGame",
+    playerCountryId: "germany",
+    aiCountryId: "soviet",
+    seed: 7,
+  });
+  for (let turn = 1; turn <= 3; turn += 1) {
+    const ordered = gameReducer(state, { type: "orderUnit", fieldId: "warsaw", unitTypeId: "infantry" });
+    state = drainAiTurn(gameReducer(ordered, { type: "endTurn" }), `late-game turn ${turn}`);
+  }
+  if (state === null) throw new Error("late-game recipe broke: state went null");
+  return gameReducer(state, { type: "attackArmy", armyId: "G2", targetFieldId: "lublin-plains" });
 }
 
 describe("persistDecision", () => {
@@ -184,6 +187,23 @@ describe("loadGame", () => {
     expect(loadGame()).toEqual(oldShape);
   });
 
+  it("round-trips a late-game campaign losslessly, and save→load→save re-writes a byte-identical envelope", () => {
+    const state = lateGameState();
+    // The recipe must land on a genuinely late state — else the test degrades
+    // to a duplicate of the early-game round-trip above.
+    expect(state.armies.length).toBeGreaterThanOrEqual(3);
+    expect(Object.keys(state.productionQueues).length).toBeGreaterThan(0);
+    expect(state.lastBattleReportByCountry.germany).not.toBeNull();
+
+    saveGame(state);
+    const firstEnvelope = storage.getItem(SAVE_STORAGE_KEY);
+    const restored = loadGame();
+
+    expect(restored).toEqual(state);
+    saveGame(restored ?? state);
+    expect(storage.getItem(SAVE_STORAGE_KEY)).toBe(firstEnvelope);
+  });
+
   it("rejects corrupt JSON and removes the entry", () => {
     storage.setItem(SAVE_STORAGE_KEY, "{not json at all");
 
@@ -216,6 +236,18 @@ describe("loadGame", () => {
 
     expect(loadGame()).toBeNull();
     expect(storage.getItem(SAVE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("swallows a blocked discard (removeItem throws) instead of crashing", () => {
+    const blocked = new (class extends MemoryStorage {
+      public override removeItem(): never {
+        throw new DOMException("blocked", "SecurityError");
+      }
+    })();
+    blocked.setItem(SAVE_STORAGE_KEY, "{not json at all");
+    vi.stubGlobal("localStorage", blocked);
+
+    expect(loadGame()).toBeNull();
   });
 
   it("swallows a security-blocked read instead of crashing", () => {

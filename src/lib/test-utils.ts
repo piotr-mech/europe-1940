@@ -7,6 +7,23 @@ import type { Army, CountryId, GameState, MapField, UnitInstance, UnitTypeId } f
 
 const FIELD_BY_ID = new Map(MAP_FIELDS.map((field) => [field.id, field]));
 
+/** In-memory Storage stand-in — the vitest environment is node (no localStorage). */
+export class MemoryStorage {
+  private map = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.map.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.map.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.map.delete(key);
+  }
+}
+
 export function field(fieldId: string): MapField {
   return FIELD_BY_ID.get(fieldId) ?? failWith(`unknown field "${fieldId}"`);
 }
